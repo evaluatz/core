@@ -13,10 +13,25 @@ import { OrderStrategyModule } from './order-strategy/order-strategy.module';
 import { OrderStatusModule } from './order-status/order-status.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { OrderSchemaModule } from './order-schema/order-schema.module';
+import { PredictionFeatureModule } from './prediction-feature/prediction-feature.module';
 
 @Module({
-  imports: [UserModule, DatabaseModule, HistoricModule, PredictionModule, PredictionStrategyModule, SymbolModule, SourceModule, OrderModule, OrderStrategyModule, OrderStatusModule, ApiKeyModule, OrderSchemaModule],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [
+        UserModule,
+        DatabaseModule,
+        HistoricModule,
+        PredictionModule,
+        PredictionStrategyModule,
+        SymbolModule,
+        SourceModule,
+        OrderModule,
+        OrderStrategyModule,
+        OrderStatusModule,
+        ApiKeyModule,
+        OrderSchemaModule,
+        PredictionFeatureModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}

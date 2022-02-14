@@ -1,4 +1,5 @@
-import { Column, PrimaryColumn } from 'typeorm';
+import { Symbol } from 'src/symbol/entities/symbol.entity';
+import { Column, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
 
 export class Historic {
     @PrimaryColumn()
@@ -24,4 +25,9 @@ export class Historic {
 
     @Column()
     closeTime: Date;
+
+    @Index()
+    @ManyToOne((type) => Symbol)
+    @JoinTable()
+    symbol: Symbol;
 }

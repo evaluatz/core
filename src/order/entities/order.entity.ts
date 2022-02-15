@@ -23,7 +23,7 @@ export class Order {
     isBuy: Boolean;
 
     @Index()
-    @OneToOne((type) => OrderStatus)
+    @ManyToOne((type) => OrderStatus)
     @JoinTable()
     status: OrderStatus;
 
@@ -32,7 +32,6 @@ export class Order {
     @JoinTable()
     apiKey: ApiKey;
 
-    @Index()
     @OneToMany((type) => Order, (order) => order.belongsTo)
     @JoinTable()
     orders: Order[];

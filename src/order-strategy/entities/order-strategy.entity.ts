@@ -1,5 +1,7 @@
 import { User } from 'src/user/entities/user.entity';
-import { Column, Index, JoinTable, OneToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+
+@Entity()
 export class OrderStrategy {
     @PrimaryColumn()
     id: number;
@@ -14,7 +16,7 @@ export class OrderStrategy {
     fileName: string;
 
     @Index()
-    @OneToOne((type) => User)
+    @ManyToOne((type) => User)
     @JoinTable()
     creator: User;
 }

@@ -1,6 +1,7 @@
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
-import { Column, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
 
+@Entity()
 export class Prediction {
     @PrimaryColumn()
     id: number;

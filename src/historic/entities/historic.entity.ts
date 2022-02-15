@@ -1,6 +1,7 @@
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
 
+@Entity()
 export class Historic {
     @PrimaryColumn()
     id: number;

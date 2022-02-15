@@ -29,6 +29,7 @@
     "@nestjs/typeorm": "^8.0.3",
     "dotenv": "^8.6.0",
     "pg": "^8.7.3",
+    "redis": "^4.0.3",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",

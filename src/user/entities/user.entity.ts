@@ -8,7 +8,7 @@ export class User {
     @Column()
     created_at: Date;
 
-    @Column()
+    @Column({ unique: true })
     username: string;
 
     @Column()

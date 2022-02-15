@@ -1,11 +1,11 @@
 import { PredictionFeature } from 'src/prediction-feature/entities/prediction-feature.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class PredictionStrategy {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()

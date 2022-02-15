@@ -7,13 +7,12 @@ import {
     JoinTable,
     ManyToOne,
     OneToMany,
-    OneToOne,
-    PrimaryColumn,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity()
 export class Order {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()

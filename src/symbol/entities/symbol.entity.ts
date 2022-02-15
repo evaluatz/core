@@ -1,18 +1,23 @@
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Coin } from 'src/coin/entities/coin.entity';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Symbol {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()
     name: string;
 
-    @Column()
-    from: string;
+    @Index()
+    @ManyToOne((type) => Coin)
+    @JoinTable()
+    from: Coin;
 
-    @Column()
-    to: string;
+    @Index()
+    @ManyToOne((type) => Coin)
+    @JoinTable()
+    to: Coin;
 
     @Column()
     lastUpdate: Date;

@@ -14,6 +14,7 @@ import { OrderStatusModule } from './order-status/order-status.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { OrderSchemaModule } from './order-schema/order-schema.module';
 import { PredictionFeatureModule } from './prediction-feature/prediction-feature.module';
+import { CoinModule } from './coin/coin.module';
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import { PredictionFeatureModule } from './prediction-feature/prediction-feature
         ApiKeyModule,
         OrderSchemaModule,
         PredictionFeatureModule,
+        CoinModule,
     ],
     controllers: [AppController],
     providers: [AppService],

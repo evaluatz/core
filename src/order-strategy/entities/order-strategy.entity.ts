@@ -1,9 +1,9 @@
 import { User } from 'src/user/entities/user.entity';
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class OrderStrategy {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()

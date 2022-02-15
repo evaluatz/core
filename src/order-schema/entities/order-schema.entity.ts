@@ -1,10 +1,11 @@
 import { ApiKey } from 'src/api-key/entities/api-key.entity';
 import { OrderStrategy } from 'src/order-strategy/entities/order-strategy.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Index, JoinTable, OneToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+@Entity()
 export class OrderSchema {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()

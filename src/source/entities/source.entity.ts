@@ -1,9 +1,8 @@
-import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Source {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn('increment')
     id: number;
 
     @Column()
@@ -20,9 +19,4 @@ export class Source {
 
     @Column()
     active: Boolean;
-
-    @Index()
-    @ManyToOne((type) => Symbol)
-    @JoinTable()
-    symbol: Symbol;
 }

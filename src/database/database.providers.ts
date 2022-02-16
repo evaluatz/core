@@ -14,6 +14,14 @@ export const databaseProviders = [
                 logging: true,
                 entities: [__dirname + '/../**/*.entity{.ts,.js}'],
                 synchronize: true,
+                cache: {
+                    type: 'redis',
+                    duration: 5000,
+                    options: {
+                        host: process.env.REDIS_HOST,
+                        port: process.env.REDIS_PORT,
+                    },
+                },
             }),
     },
 ];

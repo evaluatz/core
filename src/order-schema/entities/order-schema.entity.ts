@@ -1,7 +1,15 @@
 import { ApiKey } from 'src/api-key/entities/api-key.entity';
 import { OrderStrategy } from 'src/order-strategy/entities/order-strategy.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Entity, Index, JoinTable, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinTable,
+    ManyToOne,
+    OneToOne,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class OrderSchema {
@@ -18,17 +26,17 @@ export class OrderSchema {
     quantity: number;
 
     @Index()
-    @OneToOne((type) => ApiKey)
+    @ManyToOne((type) => ApiKey)
     @JoinTable()
     apiKey: ApiKey;
 
     @Index()
-    @OneToOne((type) => Symbol)
+    @ManyToOne((type) => Symbol)
     @JoinTable()
     symbol: Symbol;
 
     @Index()
-    @OneToOne((type) => OrderStrategy)
+    @ManyToOne((type) => OrderStrategy)
     @JoinTable()
     strategy: OrderStrategy;
 }

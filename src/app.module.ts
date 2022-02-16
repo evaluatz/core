@@ -15,6 +15,7 @@ import { ApiKeyModule } from './api-key/api-key.module';
 import { OrderSchemaModule } from './order-schema/order-schema.module';
 import { PredictionFeatureModule } from './prediction-feature/prediction-feature.module';
 import { CoinModule } from './coin/coin.module';
+import { BinanceModule } from './binance/binance.module';
 
 @Module({
     imports: [
@@ -32,6 +33,7 @@ import { CoinModule } from './coin/coin.module';
         OrderSchemaModule,
         PredictionFeatureModule,
         CoinModule,
+        BinanceModule,
     ],
     controllers: [AppController],
     providers: [AppService],

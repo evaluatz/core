@@ -38,17 +38,22 @@ export class CoinService {
     }
 
     async sync() {
-        const coinInfo = await this.binanceClient.coinInfo().then(({ data }) => data);
-        return await Promise.all(
-            coinInfo
-                .filter((d) => !!d.trading)
-                .map(async (coin) =>
-                    this.create({
-                        name: coin.coin,
-                        fullname: coin.name,
-                        description: coin.networkList.map((n) => n.name).join('|'),
-                    }),
+        try {
+            const coinInfo = await this.binanceClient.coinInfo().then(({ data }) => data);
+            const coins = await Promise.all(
+                coinInfo.map(
+                    async (coin) =>
+                        ({
+                            id: null,
+                            name: coin.coin,
+                            fullname: coin.name,
+                            description: coin.networkList.map((n) => n.name).join('|'),
+                        } as Coin),
                 ),
-        );
+            );
+            return this.coinRepository.save(coins);
+        } catch (e) {
+            return e;
+        }
     }
 }

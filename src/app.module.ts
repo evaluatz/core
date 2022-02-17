@@ -16,9 +16,11 @@ import { OrderSchemaModule } from './order-schema/order-schema.module';
 import { PredictionFeatureModule } from './prediction-feature/prediction-feature.module';
 import { CoinModule } from './coin/coin.module';
 import { BinanceModule } from './binance/binance.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
     imports: [
+        ScheduleModule.forRoot(),
         UserModule,
         DatabaseModule,
         HistoricModule,

@@ -43,20 +43,23 @@ export class SymbolService {
     }
     async sync() {
         const exchangeInfo = await this.binanceClient.exchangeInfo().then(({ data }) => data);
-        return Promise.all(
+        const symbolsData = (await Promise.all(
             exchangeInfo.symbols.map(async (symb) => {
                 const { baseAsset, quoteAsset, symbol, status } = symb;
                 const coins = await this.coinRepository.find({
-                    where: { name: [baseAsset as string, quoteAsset as string] },
+                    where: [{ name: baseAsset as string }, { name: quoteAsset as string }],
                 });
-                const symbolDto = {
+                return {
                     name: symbol,
                     from: coins.find((c) => c.name == baseAsset),
                     to: coins.find((c) => c.name == quoteAsset),
-                    active: status === 'TRADING',
-                } as CreateSymbolDto;
-                return this.create(symbolDto);
+                    id: null,
+                    lastUpdate: new Date('2000-01-01'),
+                    active: false,
+                    //active: status === 'TRADING',
+                } as Symbol;
             }),
-        );
+        )) as Symbol[];
+        return this.symbolRepository.save(symbolsData);
     }
 }

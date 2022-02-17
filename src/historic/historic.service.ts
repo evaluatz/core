@@ -1,14 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { getConnection, Repository } from 'typeorm';
+import { Symbol } from 'src/symbol/entities/symbol.entity';
+import { Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
+import { historicProviders } from './entities/historic.providers';
+import * as techIndicators from 'technicalindicators';
+import * as moment from 'moment';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class HistoricService {
     constructor(
         @Inject('HISTORIC_REPOSITORY')
         private historicRepository: Repository<Historic>,
+        @Inject('SYMBOL_REPOSITORY')
+        private symbolRepository: Repository<Symbol>,
+        @Inject('BINANCE_CONNECTION')
+        private binanceClient: any,
     ) {}
     create(createHistoricDto: CreateHistoricDto) {
         return 'This action adds a new historic';
@@ -28,5 +37,165 @@ export class HistoricService {
 
     remove(id: number) {
         return `This action removes a #${id} historic`;
+    }
+
+    async findAllWithMetrics(symbol: Symbol) {
+        const historicData = await this.historicRepository.find({
+            order: { openTime: 'ASC' },
+            where: { symbol },
+        });
+        const historicDataCross = {
+            open: [],
+            high: [],
+            low: [],
+            close: [],
+            volume: [],
+        };
+        historicData.forEach((h) => {
+            historicDataCross.open.push(+h.open);
+            historicDataCross.high.push(+h.high);
+            historicDataCross.low.push(+h.low);
+            historicDataCross.close.push(+h.close);
+            historicDataCross.volume.push(+h.volume);
+        });
+
+        const length_values = historicData.length;
+
+        const RSI_values = (async () => {
+            const arr = techIndicators.RSI.calculate({
+                values: historicDataCross.open,
+                period: 14,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        const ROC_values = (async () => {
+            const arr = techIndicators.ROC.calculate({
+                values: historicDataCross.open,
+                period: 14,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        const ADX_values = (async () => {
+            const arr = techIndicators.ADX.calculate({
+                close: historicDataCross.close,
+                high: historicDataCross.high,
+                low: historicDataCross.low,
+                period: 14,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        const ADL_values = (async () => {
+            const arr = techIndicators.ADL.calculate({
+                close: historicDataCross.close,
+                high: historicDataCross.high,
+                low: historicDataCross.low,
+                volume: historicDataCross.volume,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        const MA50_values = (async () => {
+            const arr = techIndicators.SMA.calculate({
+                values: historicDataCross.open,
+                period: 50,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        const MA100_values = (async () => {
+            const arr = techIndicators.SMA.calculate({
+                values: historicDataCross.open,
+                period: 100,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+        const MA200_values = (async () => {
+            const arr = techIndicators.SMA.calculate({
+                values: historicDataCross.open,
+                period: 200,
+            });
+            return arr.unshift(...Array(length_values - arr.length));
+        })();
+
+        await Promise.all([
+            RSI_values,
+            ROC_values,
+            ADX_values,
+            ADL_values,
+            MA50_values,
+            MA100_values,
+            MA200_values,
+        ]);
+        let histAnalysis = [];
+        for (let i = 0; i < historicData.length; i++) {
+            histAnalysis.push({
+                id: historicData[i].openTime,
+                open: historicData[i].open,
+                high: historicData[i].high,
+                low: historicData[i].low,
+                ma50: MA50_values[i],
+                ma100: MA100_values[i],
+                ma200: MA200_values[i],
+                rsi14: RSI_values[i],
+                roc14: ROC_values[i],
+                adx14: ADX_values[i]?.adx,
+                mdi14: ADX_values[i]?.mdi,
+                pdi14: ADX_values[i]?.pdi,
+                adl: ADL_values[i],
+            });
+        }
+
+        return histAnalysis;
+    }
+    @Cron(CronExpression.EVERY_30_SECONDS)
+    async sync() {
+        const symbols = await this.symbolRepository.find({ where: { active: true } });
+        return await Promise.all(
+            symbols.map(async (symbol) => {
+                const cacheKey = `historic_${symbol}`;
+                const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
+
+                if (nextUpdate > new Date()) return;
+                const options = {
+                    startTime: +nextUpdate.getTime(),
+                    limit: 1000,
+                };
+
+                const klines = await this.binanceClient
+                    .klines(symbol.name, '15m', options)
+                    .then(({ data }) => data);
+
+                if (!klines || klines.length === 0) {
+                    console.log(new Date(), 'Nothing to update: ', symbol.name);
+                    return;
+                }
+
+                const historicData: Historic[] = await Promise.all(
+                    klines.map(
+                        async (d) =>
+                            ({
+                                symbol: symbol,
+                                openTime: new Date(d[0]),
+                                open: +d[1],
+                                high: +d[2],
+                                low: +d[3],
+                                close: +d[4],
+                                volume: +d[5],
+                                closeTime: new Date(d[6]),
+                                integrityID: `${symbol.name}[${d[0]}]`,
+                            } as Historic),
+                    ),
+                );
+                const historicUpdated = await this.historicRepository.save(historicData);
+                const historicWithMetrics = await this.findAllWithMetrics(symbol);
+                // await cache.saveWithTtl(cacheKey, ticks, 900);
+                symbol.lastUpdate = historicData[historicData.length - 1].openTime;
+                await this.symbolRepository.save(symbol);
+                return historicUpdated;
+            }),
+        );
     }
 }

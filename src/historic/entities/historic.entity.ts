@@ -31,4 +31,7 @@ export class Historic {
     @ManyToOne((type) => Symbol)
     @JoinTable()
     symbol: Symbol;
+
+    @Column({ unique: true })
+    integrityID: string;
 }

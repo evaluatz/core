@@ -61,66 +61,73 @@ export class HistoricService {
 
         const length_values = historicData.length;
 
-        const RSI_values = (async () => {
+        const RSI_promise = (async () => {
             const arr = techIndicators.RSI.calculate({
                 values: historicDataCross.open,
                 period: 14,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        const ROC_values = (async () => {
+        const ROC_promise = (async () => {
             const arr = techIndicators.ROC.calculate({
                 values: historicDataCross.open,
                 period: 14,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        const ADX_values = (async () => {
+        const ADX_promise = (async () => {
             const arr = techIndicators.ADX.calculate({
                 close: historicDataCross.close,
                 high: historicDataCross.high,
                 low: historicDataCross.low,
                 period: 14,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        const ADL_values = (async () => {
+        const ADL_promise = (async () => {
             const arr = techIndicators.ADL.calculate({
                 close: historicDataCross.close,
                 high: historicDataCross.high,
                 low: historicDataCross.low,
                 volume: historicDataCross.volume,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        const MA50_values = (async () => {
+        const MA50_promise = (async () => {
             const arr = techIndicators.SMA.calculate({
                 values: historicDataCross.open,
                 period: 50,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        const MA100_values = (async () => {
+        const MA100_promise = (async () => {
             const arr = techIndicators.SMA.calculate({
                 values: historicDataCross.open,
                 period: 100,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
-        const MA200_values = (async () => {
+        const MA200_promise = (async () => {
             const arr = techIndicators.SMA.calculate({
                 values: historicDataCross.open,
                 period: 200,
             });
-            return arr.unshift(...Array(length_values - arr.length));
+            arr.unshift(...Array(length_values - arr.length));
+            return arr;
         })();
 
-        await Promise.all([
+        const [
             RSI_values,
             ROC_values,
             ADX_values,
@@ -128,14 +135,22 @@ export class HistoricService {
             MA50_values,
             MA100_values,
             MA200_values,
+        ] = await Promise.all([
+            RSI_promise,
+            ROC_promise,
+            ADX_promise,
+            ADL_promise,
+            MA50_promise,
+            MA100_promise,
+            MA200_promise,
         ]);
         let histAnalysis = [];
         for (let i = 0; i < historicData.length; i++) {
             histAnalysis.push({
                 id: historicData[i].openTime,
-                open: historicData[i].open,
-                high: historicData[i].high,
-                low: historicData[i].low,
+                open: +historicData[i].open,
+                high: +historicData[i].high,
+                low: +historicData[i].low,
                 ma50: MA50_values[i],
                 ma100: MA100_values[i],
                 ma200: MA200_values[i],
@@ -190,7 +205,7 @@ export class HistoricService {
                     ),
                 );
                 const historicUpdated = await this.historicRepository.save(historicData);
-                const historicWithMetrics = await this.findAllWithMetrics(symbol);
+                //const historicWithMetrics = await this.findAllWithMetrics(symbol);
                 // await cache.saveWithTtl(cacheKey, ticks, 900);
                 symbol.lastUpdate = historicData[historicData.length - 1].openTime;
                 await this.symbolRepository.save(symbol);

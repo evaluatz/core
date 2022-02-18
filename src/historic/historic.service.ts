@@ -1,13 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
-import { historicProviders } from './entities/historic.providers';
 import * as techIndicators from 'technicalindicators';
 import * as moment from 'moment';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class HistoricService {
@@ -18,6 +18,8 @@ export class HistoricService {
         private symbolRepository: Repository<Symbol>,
         @Inject('BINANCE_CONNECTION')
         private binanceClient: any,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache,
     ) {}
     create(createHistoricDto: CreateHistoricDto) {
         return 'This action adds a new historic';
@@ -170,7 +172,7 @@ export class HistoricService {
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
             symbols.map(async (symbol) => {
-                const cacheKey = `historic_${symbol}`;
+                const cacheKey = `historic_${symbol.name}`;
                 const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
 
                 if (nextUpdate > new Date()) return;
@@ -205,8 +207,8 @@ export class HistoricService {
                     ),
                 );
                 const historicUpdated = await this.historicRepository.save(historicData);
-                //const historicWithMetrics = await this.findAllWithMetrics(symbol);
-                // await cache.saveWithTtl(cacheKey, ticks, 900);
+                const historicWithMetrics = await this.findAllWithMetrics(symbol);
+                await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 1000 });
                 symbol.lastUpdate = historicData[historicData.length - 1].openTime;
                 await this.symbolRepository.save(symbol);
                 return historicUpdated;

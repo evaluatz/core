@@ -23,14 +23,9 @@ import * as redisStore from 'cache-manager-redis-store';
 @Module({
     imports: [
         CacheModule.register<RedisClientOptions>({
+            url: `redis://${process.env.REDIS_URL || 'localhost:6379'}`,
             store: redisStore,
             isGlobal: true,
-            // Store-specific configuration:
-            socket: {
-                host: process.env.REDIS_HOST,
-                port: +process.env.REDIS_PORT,
-                passphrase: process.env.REDIS_PASSWORD,
-            },
         }),
         ScheduleModule.forRoot(),
         UserModule,

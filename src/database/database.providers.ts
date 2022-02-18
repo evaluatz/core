@@ -17,9 +17,9 @@ export const databaseProviders = [
                 cache: {
                     type: 'redis',
                     duration: 5000,
+
                     options: {
-                        host: process.env.REDIS_HOST,
-                        port: process.env.REDIS_PORT,
+                        url: `redis://${process.env.REDIS_URL || 'localhost:6379'}`,
                     },
                 },
             }),

@@ -174,44 +174,54 @@ export class HistoricService {
             symbols.map(async (symbol) => {
                 const cacheKey = `historic_${symbol.name}`;
                 const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
+                const cacheLoading = `loading_${cacheKey}_${nextUpdate.getTime()}`;
+                try {
+                    if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date())
+                        return;
+                    const options = {
+                        startTime: +nextUpdate.getTime(),
+                        limit: 1000,
+                    };
 
-                if (nextUpdate > new Date()) return;
-                const options = {
-                    startTime: +nextUpdate.getTime(),
-                    limit: 1000,
-                };
+                    await this.cacheManager.set(cacheLoading, 'true', {
+                        ttl: 900,
+                    });
+                    const klines = await this.binanceClient
+                        .klines(symbol.name, '15m', options)
+                        .then(({ data }) => data);
 
-                const klines = await this.binanceClient
-                    .klines(symbol.name, '15m', options)
-                    .then(({ data }) => data);
+                    if (!klines || klines.length === 0) {
+                        console.log(new Date(), 'Nothing to update: ', symbol.name);
+                        return;
+                    }
 
-                if (!klines || klines.length === 0) {
-                    console.log(new Date(), 'Nothing to update: ', symbol.name);
-                    return;
+                    const historicData: Historic[] = await Promise.all(
+                        klines.map(
+                            async (d) =>
+                                ({
+                                    symbol: symbol,
+                                    openTime: new Date(d[0]),
+                                    open: +d[1],
+                                    high: +d[2],
+                                    low: +d[3],
+                                    close: +d[4],
+                                    volume: +d[5],
+                                    closeTime: new Date(d[6]),
+                                    integrityID: `${symbol.name}[${d[0]}]`,
+                                } as Historic),
+                        ),
+                    );
+                    const historicUpdated = await this.historicRepository.save(historicData);
+                    const historicWithMetrics = await this.findAllWithMetrics(symbol);
+                    await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 900 });
+                    symbol.lastUpdate = historicData[historicData.length - 1].openTime;
+                    await this.symbolRepository.save(symbol);
+                    await this.cacheManager.del(cacheLoading);
+                    return historicUpdated;
+                } catch (e) {
+                    await this.cacheManager.del(cacheLoading);
+                    console.log(e);
                 }
-
-                const historicData: Historic[] = await Promise.all(
-                    klines.map(
-                        async (d) =>
-                            ({
-                                symbol: symbol,
-                                openTime: new Date(d[0]),
-                                open: +d[1],
-                                high: +d[2],
-                                low: +d[3],
-                                close: +d[4],
-                                volume: +d[5],
-                                closeTime: new Date(d[6]),
-                                integrityID: `${symbol.name}[${d[0]}]`,
-                            } as Historic),
-                    ),
-                );
-                const historicUpdated = await this.historicRepository.save(historicData);
-                const historicWithMetrics = await this.findAllWithMetrics(symbol);
-                await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 1000 });
-                symbol.lastUpdate = historicData[historicData.length - 1].openTime;
-                await this.symbolRepository.save(symbol);
-                return historicUpdated;
             }),
         );
     }

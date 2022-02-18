@@ -29,6 +29,7 @@ import * as redisStore from 'cache-manager-redis-store';
             socket: {
                 host: process.env.REDIS_HOST,
                 port: +process.env.REDIS_PORT,
+                passphrase: process.env.REDIS_PASSWORD,
             },
         }),
         ScheduleModule.forRoot(),

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { CacheModule, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -17,9 +17,16 @@ import { PredictionFeatureModule } from './prediction-feature/prediction-feature
 import { CoinModule } from './coin/coin.module';
 import { BinanceModule } from './binance/binance.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { RedisClientOptions } from 'redis';
+import * as redisStore from 'cache-manager-redis-store';
 
 @Module({
     imports: [
+        CacheModule.register<RedisClientOptions>({
+            url: `redis://${process.env.REDIS_URL || 'localhost:6379'}`,
+            store: redisStore,
+            isGlobal: true,
+        }),
         ScheduleModule.forRoot(),
         UserModule,
         DatabaseModule,

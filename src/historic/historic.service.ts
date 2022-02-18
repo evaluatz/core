@@ -1,13 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
-import { historicProviders } from './entities/historic.providers';
 import * as techIndicators from 'technicalindicators';
 import * as moment from 'moment';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class HistoricService {
@@ -18,6 +18,8 @@ export class HistoricService {
         private symbolRepository: Repository<Symbol>,
         @Inject('BINANCE_CONNECTION')
         private binanceClient: any,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache,
     ) {}
     create(createHistoricDto: CreateHistoricDto) {
         return 'This action adds a new historic';
@@ -170,46 +172,56 @@ export class HistoricService {
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
             symbols.map(async (symbol) => {
-                const cacheKey = `historic_${symbol}`;
+                const cacheKey = `historic_${symbol.name}`;
                 const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
+                const cacheLoading = `loading_${cacheKey}_${nextUpdate.getTime()}`;
+                try {
+                    if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date())
+                        return;
+                    const options = {
+                        startTime: +nextUpdate.getTime(),
+                        limit: 1000,
+                    };
 
-                if (nextUpdate > new Date()) return;
-                const options = {
-                    startTime: +nextUpdate.getTime(),
-                    limit: 1000,
-                };
+                    await this.cacheManager.set(cacheLoading, 'true', {
+                        ttl: 900,
+                    });
+                    const klines = await this.binanceClient
+                        .klines(symbol.name, '15m', options)
+                        .then(({ data }) => data);
 
-                const klines = await this.binanceClient
-                    .klines(symbol.name, '15m', options)
-                    .then(({ data }) => data);
+                    if (!klines || klines.length === 0) {
+                        console.log(new Date(), 'Nothing to update: ', symbol.name);
+                        return;
+                    }
 
-                if (!klines || klines.length === 0) {
-                    console.log(new Date(), 'Nothing to update: ', symbol.name);
-                    return;
+                    const historicData: Historic[] = await Promise.all(
+                        klines.map(
+                            async (d) =>
+                                ({
+                                    symbol: symbol,
+                                    openTime: new Date(d[0]),
+                                    open: +d[1],
+                                    high: +d[2],
+                                    low: +d[3],
+                                    close: +d[4],
+                                    volume: +d[5],
+                                    closeTime: new Date(d[6]),
+                                    integrityID: `${symbol.name}[${d[0]}]`,
+                                } as Historic),
+                        ),
+                    );
+                    const historicUpdated = await this.historicRepository.save(historicData);
+                    const historicWithMetrics = await this.findAllWithMetrics(symbol);
+                    await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 900 });
+                    symbol.lastUpdate = historicData[historicData.length - 1].openTime;
+                    await this.symbolRepository.save(symbol);
+                    await this.cacheManager.del(cacheLoading);
+                    return historicUpdated;
+                } catch (e) {
+                    await this.cacheManager.del(cacheLoading);
+                    console.log(e);
                 }
-
-                const historicData: Historic[] = await Promise.all(
-                    klines.map(
-                        async (d) =>
-                            ({
-                                symbol: symbol,
-                                openTime: new Date(d[0]),
-                                open: +d[1],
-                                high: +d[2],
-                                low: +d[3],
-                                close: +d[4],
-                                volume: +d[5],
-                                closeTime: new Date(d[6]),
-                                integrityID: `${symbol.name}[${d[0]}]`,
-                            } as Historic),
-                    ),
-                );
-                const historicUpdated = await this.historicRepository.save(historicData);
-                //const historicWithMetrics = await this.findAllWithMetrics(symbol);
-                // await cache.saveWithTtl(cacheKey, ticks, 900);
-                symbol.lastUpdate = historicData[historicData.length - 1].openTime;
-                await this.symbolRepository.save(symbol);
-                return historicUpdated;
             }),
         );
     }

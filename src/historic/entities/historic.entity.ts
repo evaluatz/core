@@ -1,11 +1,12 @@
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Historic {
-    @PrimaryGeneratedColumn()
+    @PrimaryColumn({ type: 'bigint' })
     id: number;
 
+    @Index()
     @Column()
     openTime: Date;
 
@@ -31,7 +32,4 @@ export class Historic {
     @ManyToOne((type) => Symbol)
     @JoinTable()
     symbol: Symbol;
-
-    @Column({ unique: true })
-    integrityID: string;
 }

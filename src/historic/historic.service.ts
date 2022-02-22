@@ -1,13 +1,13 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cache } from 'cache-manager';
+import * as moment from 'moment';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
+import * as techIndicators from 'technicalindicators';
 import { Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
-import * as techIndicators from 'technicalindicators';
-import * as moment from 'moment';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { Cache } from 'cache-manager';
 
 @Injectable()
 export class HistoricService {
@@ -199,6 +199,10 @@ export class HistoricService {
                         klines.map(
                             async (d) =>
                                 ({
+                                    id: +`${symbol.id}${new Date(d[0])
+                                        .getTime()
+                                        .toString()
+                                        .substring(0, 9)}`,
                                     symbol: symbol,
                                     openTime: new Date(d[0]),
                                     open: +d[1],
@@ -207,19 +211,37 @@ export class HistoricService {
                                     close: +d[4],
                                     volume: +d[5],
                                     closeTime: new Date(d[6]),
-                                    integrityID: `${symbol.name}[${d[0]}]`,
                                 } as Historic),
                         ),
                     );
-                    const historicUpdated = await this.historicRepository.save(historicData);
+                    try {
+                        await this.historicRepository.save(historicData);
+                    } catch (e) {
+                        const histToCheck = (
+                            await this.historicRepository.find({
+                                select: ['id'],
+                                order: { openTime: 'DESC' },
+                                take: 1000,
+                                where: {
+                                    symbol,
+                                },
+                            })
+                        ).map((h) => +h.id);
+
+                        const toExecuteInChunk = historicData.filter(
+                            (h) => !histToCheck.includes(h.id),
+                        );
+
+                        //If error try to make one by one
+                        await this.historicRepository.save(toExecuteInChunk);
+                    }
                     const historicWithMetrics = await this.findAllWithMetrics(symbol);
                     await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 900 });
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;
                     await this.symbolRepository.save(symbol);
                     await this.cacheManager.del(cacheLoading);
-                    return historicUpdated;
+                    return;
                 } catch (e) {
-                    await this.cacheManager.del(cacheLoading);
                     console.log(e);
                 }
             }),

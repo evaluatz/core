@@ -32,6 +32,7 @@ export class HistoricController {
         if (histCached) return histCached;
 
         const symbol = await this.symbolRepository.findOne({ where: { name } });
-        return this.historicService.findAllWithMetrics(symbol);
+        await this.historicService.updateAllWithMetrics(symbol);
+        return await this.cacheManager.get(`historic_${name}`);
     }
 }

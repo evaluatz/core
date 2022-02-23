@@ -41,7 +41,7 @@ export class HistoricService {
         return `This action removes a #${id} historic`;
     }
 
-    async findAllWithMetrics(symbol: Symbol) {
+    async updateAllWithMetrics(symbol: Symbol) {
         const historicData = await this.historicRepository.find({
             order: { openTime: 'ASC' },
             where: { symbol },
@@ -146,9 +146,27 @@ export class HistoricService {
             MA100_promise,
             MA200_promise,
         ]);
-        let histAnalysis = [];
+        const histAnalysisJson = [];
+        const histAnalysis = {
+            headers: [
+                'id',
+                'open',
+                'high',
+                'low',
+                'ma50',
+                'ma100',
+                'ma200',
+                'rsi14',
+                'roc14',
+                'adx14',
+                'mdi14',
+                'pdi14',
+                'adl',
+            ],
+            data: [],
+        };
         for (let i = 0; i < historicData.length; i++) {
-            histAnalysis.push({
+            histAnalysisJson.push({
                 id: historicData[i].openTime,
                 open: +historicData[i].open,
                 high: +historicData[i].high,
@@ -163,9 +181,27 @@ export class HistoricService {
                 pdi14: ADX_values[i]?.pdi,
                 adl: ADL_values[i],
             });
-        }
 
-        return histAnalysis;
+            histAnalysis.data.push([
+                historicData[i].openTime,
+                +historicData[i].open,
+                +historicData[i].high,
+                +historicData[i].low,
+                MA50_values[i],
+                MA100_values[i],
+                MA200_values[i],
+                RSI_values[i],
+                ROC_values[i],
+                ADX_values[i]?.adx,
+                ADX_values[i]?.mdi,
+                ADX_values[i]?.pdi,
+                ADL_values[i],
+            ]);
+        }
+        await this.cacheManager.set(`historic_${symbol.name}_json`, histAnalysisJson, { ttl: 900 });
+        await this.cacheManager.set(`historic_${symbol.name}`, histAnalysis, { ttl: 900 });
+
+        return;
     }
     @Cron(CronExpression.EVERY_30_SECONDS)
     async sync() {
@@ -235,8 +271,8 @@ export class HistoricService {
                         //If error try to make one by one
                         await this.historicRepository.save(toExecuteInChunk);
                     }
-                    const historicWithMetrics = await this.findAllWithMetrics(symbol);
-                    await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 900 });
+                    await this.updateAllWithMetrics(symbol);
+
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;
                     await this.symbolRepository.save(symbol);
                 } catch (e) {

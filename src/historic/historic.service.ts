@@ -239,10 +239,11 @@ export class HistoricService {
                     await this.cacheManager.set(cacheKey, historicWithMetrics, { ttl: 900 });
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;
                     await this.symbolRepository.save(symbol);
-                    await this.cacheManager.del(cacheLoading);
-                    return;
                 } catch (e) {
                     console.log(e);
+                } finally {
+                    await this.cacheManager.del(cacheLoading);
+                    return;
                 }
             }),
         );

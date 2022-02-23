@@ -1,26 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
+import { PredictionFeature } from 'src/prediction-feature/entities/prediction-feature.entity';
+import { Symbol } from 'src/symbol/entities/symbol.entity';
+import { User } from 'src/user/entities/user.entity';
+import { Repository } from 'typeorm';
 import { CreatePredictionStrategyDto } from './dto/create-prediction-strategy.dto';
 import { UpdatePredictionStrategyDto } from './dto/update-prediction-strategy.dto';
-
+import { PredictionStrategy } from './entities/prediction-strategy.entity';
+import * as uuid from 'uuid';
 @Injectable()
 export class PredictionStrategyService {
-  create(createPredictionStrategyDto: CreatePredictionStrategyDto) {
-    return 'This action adds a new predictionStrategy';
-  }
+    constructor(
+        @Inject('PREDICTION_STRATEGY_REPOSITORY')
+        private predictionStrategyRepository: Repository<PredictionStrategy>,
+        @Inject('USER_REPOSITORY')
+        private userRepository: Repository<User>,
+        @Inject('SYMBOL_REPOSITORY')
+        private symbolRepository: Repository<Symbol>,
+        @Inject('PREDICTION_FEATURE_REPOSITORY')
+        private predictionFeatureRepository: Repository<PredictionFeature>,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache,
+    ) {}
 
-  findAll() {
-    return `This action returns all predictionStrategy`;
-  }
+    async create(createPredictionStrategyDto: CreatePredictionStrategyDto) {
+        const { name, description, creatorID, symbolID, featureID } = createPredictionStrategyDto;
 
-  findOne(id: number) {
-    return `This action returns a #${id} predictionStrategy`;
-  }
+        const creator = await this.userRepository.findOne({ id: creatorID });
+        if (!creator) throw 'Invalid User';
 
-  update(id: number, updatePredictionStrategyDto: UpdatePredictionStrategyDto) {
-    return `This action updates a #${id} predictionStrategy`;
-  }
+        const symbol = await this.symbolRepository.findOne({ id: symbolID });
+        if (!symbol) throw 'Invalid Symbol';
 
-  remove(id: number) {
-    return `This action removes a #${id} predictionStrategy`;
-  }
+        const feature = await this.predictionFeatureRepository.findOne({ id: featureID });
+        if (!feature) throw 'Invalid Feature';
+
+        const newObj = {
+            id: uuid.v4(),
+            secret: uuid.v4(),
+            created_at: new Date(),
+            updated_at: new Date(),
+            creator,
+            symbol,
+            feature,
+            name,
+            description,
+        } as PredictionStrategy;
+        return this.predictionStrategyRepository.save(newObj);
+    }
+
+    findAll() {
+        return this.predictionStrategyRepository.find();
+    }
+
+    findOne(id: string) {
+        return this.predictionStrategyRepository.findOne({
+            where: { id },
+            relations: ['creator', 'symbol', 'feature', 'predictions'],
+        });
+    }
 }

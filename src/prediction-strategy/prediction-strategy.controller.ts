@@ -5,30 +5,20 @@ import { UpdatePredictionStrategyDto } from './dto/update-prediction-strategy.dt
 
 @Controller('prediction-strategy')
 export class PredictionStrategyController {
-  constructor(private readonly predictionStrategyService: PredictionStrategyService) {}
+    constructor(private readonly predictionStrategyService: PredictionStrategyService) {}
 
-  @Post()
-  create(@Body() createPredictionStrategyDto: CreatePredictionStrategyDto) {
-    return this.predictionStrategyService.create(createPredictionStrategyDto);
-  }
+    @Post()
+    create(@Body() createPredictionStrategyDto: CreatePredictionStrategyDto) {
+        return this.predictionStrategyService.create(createPredictionStrategyDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.predictionStrategyService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.predictionStrategyService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.predictionStrategyService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePredictionStrategyDto: UpdatePredictionStrategyDto) {
-    return this.predictionStrategyService.update(+id, updatePredictionStrategyDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.predictionStrategyService.remove(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.predictionStrategyService.findOne(id);
+    }
 }

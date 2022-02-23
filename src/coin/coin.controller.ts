@@ -17,9 +17,9 @@ export class CoinController {
         return this.coinService.findAll();
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.coinService.findOne(+id);
+    @Get(':name')
+    findOne(@Param('name') name: string) {
+        return this.coinService.findOne(name);
     }
 
     @Patch(':id')

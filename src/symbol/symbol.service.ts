@@ -30,8 +30,8 @@ export class SymbolService {
         return this.symbolRepository.find();
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} symbol`;
+    findOne(name: string) {
+        return this.symbolRepository.findOne({ name });
     }
 
     update(id: number, updateSymbolDto: UpdateSymbolDto) {
@@ -49,6 +49,8 @@ export class SymbolService {
                 const coins = await this.coinRepository.find({
                     where: [{ name: baseAsset as string }, { name: quoteAsset as string }],
                 });
+                //Check if already exist
+                if (await this.findOne(symbol)) return;
                 return {
                     name: symbol,
                     from: coins.find((c) => c.name == baseAsset),

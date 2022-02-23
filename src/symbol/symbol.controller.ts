@@ -17,18 +17,8 @@ export class SymbolController {
         return this.symbolService.findAll();
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.symbolService.findOne(+id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateSymbolDto: UpdateSymbolDto) {
-        return this.symbolService.update(+id, updateSymbolDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.symbolService.remove(+id);
+    @Get(':name')
+    findOne(@Param('name') name: string) {
+        return this.symbolService.findOne(name);
     }
 }

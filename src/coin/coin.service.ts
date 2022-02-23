@@ -25,8 +25,8 @@ export class CoinService {
         return this.coinRepository.find();
     }
 
-    findOne(id: number) {
-        return this.coinRepository.findOne({ id });
+    findOne(name: string) {
+        return this.coinRepository.findOne({ name });
     }
 
     update(id: number, updateCoinDto: UpdateCoinDto) {
@@ -41,14 +41,15 @@ export class CoinService {
         try {
             const coinInfo = await this.binanceClient.coinInfo().then(({ data }) => data);
             const coins = await Promise.all(
-                coinInfo.map(
-                    async (coin) =>
-                        ({
-                            id: null,
-                            name: coin.coin,
-                            fullname: coin.name,
-                            description: coin.networkList.map((n) => n.name).join('|'),
-                        } as Coin),
+                coinInfo.map(async (coin) =>
+                    (await this.findOne(coin.coin))
+                        ? undefined
+                        : ({
+                              id: null,
+                              name: coin.coin,
+                              fullname: coin.name,
+                              description: coin.networkList.map((n) => n.name).join('|'),
+                          } as Coin),
                 ),
             );
             return this.coinRepository.save(coins);

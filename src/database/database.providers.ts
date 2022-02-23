@@ -14,14 +14,6 @@ export const databaseProviders = [
                 logging: process.env.DB_LOGGING === 'true',
                 entities: [__dirname + '/../**/*.entity{.ts,.js}'],
                 synchronize: true,
-                cache: {
-                    type: 'redis',
-                    duration: 5000,
-
-                    options: {
-                        url: `redis://${process.env.REDIS_URL || 'localhost:6379'}`,
-                    },
-                },
             }),
     },
 ];

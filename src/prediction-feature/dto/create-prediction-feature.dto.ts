@@ -1,1 +1,3 @@
-export class CreatePredictionFeatureDto {}
+export class CreatePredictionFeatureDto {
+    name: string;
+}

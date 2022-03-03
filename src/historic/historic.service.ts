@@ -216,7 +216,7 @@ export class HistoricService {
         this.logger.log(`${currentTime.toISOString()} [Sync] > : Starting`);
         if (await this.cacheManager.get(cacheSessionID)) {
             this.logger.log(`${currentTime.toISOString()} [Sync] > : Symbols Locked`);
-            return;
+            return 'Symbols Locked';
         }
         this.logger.log(`${currentTime.toISOString()} [Sync] > : Caching session`);
         await this.cacheManager.set(cacheSessionID, 'true', {
@@ -245,7 +245,9 @@ export class HistoricService {
                                 symbol.name
                             } : Already updating`,
                         );
-                        return;
+                        return `${currentTime.toISOString()}[Sync] > ${
+                            symbol.name
+                        } : Already updating`;
                     }
 
                     this.logger.log(
@@ -270,7 +272,9 @@ export class HistoricService {
                                 symbol.name
                             } : Nothing to update`,
                         );
-                        return;
+                        return `${currentTime.toISOString()} [Sync] > ${
+                            symbol.name
+                        } : Nothing to update`;
                     }
 
                     const historicData: Historic[] = await Promise.all(
@@ -367,7 +371,7 @@ export class HistoricService {
                         `${currentTime.toISOString()} [Sync] > ${symbol.name} : End Session`,
                     );
                     await this.cacheManager.del(cacheLoading);
-                    return;
+                    return `${currentTime.toISOString()} [Sync] > ${symbol.name} : End Session`;
                 }
             }),
         );

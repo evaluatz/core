@@ -22,6 +22,7 @@ export class Symbol {
     @Column()
     lastUpdate: Date;
 
+    @Index()
     @Column()
     active: Boolean;
 }

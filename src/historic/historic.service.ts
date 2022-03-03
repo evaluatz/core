@@ -222,7 +222,7 @@ export class HistoricService {
         }
         this.logger.log(`${currentTime.toISOString()} [Sync] > : Caching session`);
         await this.cacheManager.set(cacheSessionID, 'true', {
-            ttl: 900,
+            ttl: 30,
         });
         this.logger.log(`${currentTime.toISOString()} [Sync] > : Loading Symbols`);
         const symbols = await this.symbolRepository.find({ where: { active: true } });
@@ -365,6 +365,9 @@ export class HistoricService {
                 } catch (e) {
                     console.log(e);
                 } finally {
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : End Session`,
+                    );
                     await this.cacheManager.del(cacheLoading);
                     return;
                 }

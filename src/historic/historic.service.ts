@@ -1,4 +1,4 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import * as moment from 'moment';
@@ -11,6 +11,8 @@ import { Historic } from './entities/historic.entity';
 
 @Injectable()
 export class HistoricService {
+    private readonly logger = new Logger('HistoricService');
+
     constructor(
         @Inject('HISTORIC_REPOSITORY')
         private historicRepository: Repository<Historic>,
@@ -42,6 +44,7 @@ export class HistoricService {
     }
 
     async updateAllWithMetrics(symbol: Symbol) {
+        this.logger.log(`[UpdateMetrics] > ${symbol.name} : Loading DB `);
         const historicData = await this.historicRepository.find({
             order: { openTime: 'ASC' },
             where: { symbol },
@@ -60,7 +63,7 @@ export class HistoricService {
             historicDataCross.close.push(+h.close);
             historicDataCross.volume.push(+h.volume);
         });
-
+        this.logger.log(`[UpdateMetrics] > ${symbol.name} : Calculating`);
         const length_values = historicData.length;
 
         const RSI_promise = (async () => {
@@ -165,22 +168,24 @@ export class HistoricService {
             ],
             data: [],
         };
+        this.logger.log(`[UpdateMetrics] > ${symbol.name} : Formatting`);
+
         for (let i = 0; i < historicData.length; i++) {
-            histAnalysisJson.push({
-                id: historicData[i].openTime,
-                open: +historicData[i].open,
-                high: +historicData[i].high,
-                low: +historicData[i].low,
-                ma50: MA50_values[i],
-                ma100: MA100_values[i],
-                ma200: MA200_values[i],
-                rsi14: RSI_values[i],
-                roc14: ROC_values[i],
-                adx14: ADX_values[i]?.adx,
-                mdi14: ADX_values[i]?.mdi,
-                pdi14: ADX_values[i]?.pdi,
-                adl: ADL_values[i],
-            });
+            // histAnalysisJson.push({
+            //     id: historicData[i].openTime,
+            //     open: +historicData[i].open,
+            //     high: +historicData[i].high,
+            //     low: +historicData[i].low,
+            //     ma50: MA50_values[i],
+            //     ma100: MA100_values[i],
+            //     ma200: MA200_values[i],
+            //     rsi14: RSI_values[i],
+            //     roc14: ROC_values[i],
+            //     adx14: ADX_values[i]?.adx,
+            //     mdi14: ADX_values[i]?.mdi,
+            //     pdi14: ADX_values[i]?.pdi,
+            //     adl: ADL_values[i],
+            // });
 
             histAnalysis.data.push([
                 historicData[i].openTime,
@@ -198,12 +203,14 @@ export class HistoricService {
                 ADL_values[i],
             ]);
         }
-        await this.cacheManager.set(`historic_${symbol.name}_json`, histAnalysisJson, { ttl: 900 });
+        this.logger.log(`[UpdateMetrics] > ${symbol.name} : Caching`);
+
+        // await this.cacheManager.set(`historic_${symbol.name}_json`, histAnalysisJson, { ttl: 900 });
         await this.cacheManager.set(`historic_${symbol.name}`, histAnalysis, { ttl: 900 });
 
         return;
     }
-    @Cron(CronExpression.EVERY_30_SECONDS)
+    @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
@@ -212,8 +219,12 @@ export class HistoricService {
                 const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
                 const cacheLoading = `loading_${cacheKey}_${nextUpdate.getTime()}`;
                 try {
+                    this.logger.log(`[Sync] > ${symbol.name} : Checking`);
+
                     if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date())
                         return;
+                    this.logger.log(`[Sync] > ${symbol.name} : Starting`);
+
                     const options = {
                         startTime: +nextUpdate.getTime(),
                         limit: 1000,
@@ -227,7 +238,7 @@ export class HistoricService {
                         .then(({ data }) => data);
 
                     if (!klines || klines.length === 0) {
-                        console.log(new Date(), 'Nothing to update: ', symbol.name);
+                        this.logger.log(`[Sync] > ${symbol.name} : Nothing to update`);
                         return;
                     }
 
@@ -250,9 +261,14 @@ export class HistoricService {
                                 } as Historic),
                         ),
                     );
+                    this.logger.log(`[Sync] > ${symbol.name} : Saving DB`);
+
                     try {
+                        this.logger.log(`[Sync] > ${symbol.name} : Trying 1st method`);
+
                         await this.historicRepository.save(historicData);
                     } catch (e) {
+                        this.logger.log(`[Sync] > ${symbol.name} : Trying 2st method`);
                         const histToCheck = (
                             await this.historicRepository.find({
                                 select: ['id'],
@@ -272,9 +288,11 @@ export class HistoricService {
                         await this.historicRepository.save(toExecuteInChunk);
                     }
                     await this.updateAllWithMetrics(symbol);
-
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;
+                    this.logger.log(`[Sync] > ${symbol.name} : Saving Last update`);
+
                     await this.symbolRepository.save(symbol);
+                    this.logger.log(`[Sync] > ${symbol.name} : Finished`);
                 } catch (e) {
                     console.log(e);
                 } finally {

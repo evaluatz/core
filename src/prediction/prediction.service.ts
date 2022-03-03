@@ -25,8 +25,10 @@ export class PredictionService {
             value,
             strategy,
         } as Prediction;
-
-        return this.predictionRepository.save(newObj);
+        await this.predictionRepository.save(newObj);
+        strategy.updated_at = new Date();
+        await this.predictionStrategyRepository.save(strategy);
+        return true;
     }
 
     findAll() {

@@ -49,14 +49,44 @@ export class PredictionStrategyService {
         return this.predictionStrategyRepository.save(newObj);
     }
 
-    findAll() {
-        return this.predictionStrategyRepository.find();
+    async findAll() {
+        const predictionStrategies = await this.predictionStrategyRepository.find({
+            relations: ['symbol', 'feature'],
+        });
+        return predictionStrategies.map((ps) => ({
+            id: ps.id,
+            secret: ps.secret,
+            name: ps.name,
+            description: ps.description,
+            symbol: ps.symbol.name,
+            feature: ps.feature.name,
+        }));
     }
 
-    findOne(id: string) {
-        return this.predictionStrategyRepository.findOne({
+    async findOne(id: string) {
+        const predictionStrategy = await this.predictionStrategyRepository.findOne({
             where: { id },
             relations: ['creator', 'symbol', 'feature', 'predictions'],
         });
+        return {
+            id: predictionStrategy.id,
+            secret: predictionStrategy.secret,
+            created_at: predictionStrategy.created_at,
+            updated_at: predictionStrategy.updated_at,
+            name: predictionStrategy.name,
+            description: predictionStrategy.description,
+            creator: {
+                created_at: predictionStrategy.creator.created_at,
+                username: predictionStrategy.creator.username,
+                full_name: predictionStrategy.creator.full_name,
+                email: predictionStrategy.creator.email,
+            },
+            symbol: predictionStrategy.symbol.name,
+            feature: predictionStrategy.feature.name,
+            predictions: predictionStrategy.predictions.map((p) => ({
+                openTime: p.openTime,
+                value: p.value,
+            })),
+        };
     }
 }

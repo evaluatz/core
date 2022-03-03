@@ -220,11 +220,14 @@ export class HistoricService {
             this.logger.log(`${currentTime.toISOString()} [Sync] > : Symbols Locked`);
             return;
         }
+        this.logger.log(`${currentTime.toISOString()} [Sync] > : Caching session`);
         await this.cacheManager.set(cacheSessionID, 'true', {
             ttl: 900,
         });
-
+        this.logger.log(`${currentTime.toISOString()} [Sync] > : Loading Symbols`);
         const symbols = await this.symbolRepository.find({ where: { active: true } });
+
+        this.logger.log(`${currentTime.toISOString()} [Sync] > : Clean cache session`);
 
         await this.cacheManager.del(cacheSessionID);
 

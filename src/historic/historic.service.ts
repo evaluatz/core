@@ -239,7 +239,7 @@ export class HistoricService {
                         `${currentTime.toISOString()} [Sync] > ${symbol.name} : Checking`,
                     );
 
-                    if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date()) {
+                    if (await this.cacheManager.get(cacheLoading)) {
                         this.logger.log(
                             `${currentTime.toISOString()}[Sync] > ${
                                 symbol.name
@@ -248,6 +248,16 @@ export class HistoricService {
                         return `${currentTime.toISOString()}[Sync] > ${
                             symbol.name
                         } : Already updating`;
+                    }
+                    if (nextUpdate > new Date()) {
+                        this.logger.log(
+                            `${currentTime.toISOString()} [Sync] > ${
+                                symbol.name
+                            } : Nothing to update`,
+                        );
+                        return `${currentTime.toISOString()} [Sync] > ${
+                            symbol.name
+                        } : Nothing to update`;
                     }
 
                     this.logger.log(

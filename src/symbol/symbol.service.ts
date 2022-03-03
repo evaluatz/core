@@ -46,7 +46,7 @@ export class SymbolService {
         return `This action removes a #${id} symbol`;
     }
 
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
     async sync() {
         this.logger.log(`[Sync] > : Starting`);
 

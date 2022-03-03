@@ -213,7 +213,8 @@ export class HistoricService {
     }
     @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
-        this.logger.log(`[Sync] > : Starting`);
+        const currentTime = moment();
+        this.logger.log(`${currentTime.toISOString()} [Sync] > : Starting`);
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
             symbols.map(async (symbol) => {
@@ -221,14 +222,22 @@ export class HistoricService {
                 const nextUpdate = moment(symbol.lastUpdate).add(15, 'minutes').toDate();
                 const cacheLoading = `loading_${cacheKey}_${nextUpdate.getTime()}`;
                 try {
-                    this.logger.log(`[Sync] > ${symbol.name} : Checking`);
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : Checking`,
+                    );
 
                     if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date()) {
-                        this.logger.log(`[Sync] > ${symbol.name} : Already updating`);
+                        this.logger.log(
+                            `${currentTime.toISOString()}[Sync] > ${
+                                symbol.name
+                            } : Already updating`,
+                        );
                         return;
                     }
 
-                    this.logger.log(`[Sync] > ${symbol.name} : Starting`);
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : Starting`,
+                    );
 
                     const options = {
                         startTime: +nextUpdate.getTime(),
@@ -243,7 +252,11 @@ export class HistoricService {
                         .then(({ data }) => data);
 
                     if (!klines || klines.length === 0) {
-                        this.logger.log(`[Sync] > ${symbol.name} : Nothing to update`);
+                        this.logger.log(
+                            `${currentTime.toISOString()} [Sync] > ${
+                                symbol.name
+                            } : Nothing to update`,
+                        );
                         return;
                     }
 
@@ -265,10 +278,16 @@ export class HistoricService {
                             }),
                         ),
                     );
-                    this.logger.log(`[Sync] > ${symbol.name} : Saving DB`);
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : Saving DB`,
+                    );
 
                     try {
-                        this.logger.log(`[Sync] > ${symbol.name} : Trying 1st method`);
+                        this.logger.log(
+                            `${currentTime.toISOString()} [Sync] > ${
+                                symbol.name
+                            } : Trying 1st method`,
+                        );
                         await this.historicRepository
                             .createQueryBuilder()
                             .insert()
@@ -280,7 +299,11 @@ export class HistoricService {
                             })
                             .execute();
                     } catch (e) {
-                        this.logger.log(`[Sync] > ${symbol.name} : Trying 3rd method`);
+                        this.logger.log(
+                            `${currentTime.toISOString()} [Sync] > ${
+                                symbol.name
+                            } : Trying 3rd method`,
+                        );
                         const histToCheck = (
                             await this.historicRepository.find({
                                 select: ['id'],
@@ -298,20 +321,32 @@ export class HistoricService {
                         await Promise.all(
                             toExecuteInChunk.map(async (h) => {
                                 try {
-                                    this.logger.log(`[Sync] > ${symbol.name}:${h.id} : Saving`);
+                                    this.logger.log(
+                                        `${currentTime.toISOString()} [Sync] > ${symbol.name}:${
+                                            h.id
+                                        } : Saving`,
+                                    );
                                     await this.historicRepository.save(h);
                                 } catch (e) {
-                                    this.logger.log(`[Sync] > ${h.id} : Error to save`);
+                                    this.logger.log(
+                                        ` ${currentTime.toISOString()} [Sync] > ${
+                                            h.id
+                                        } : Error to save`,
+                                    );
                                 }
                             }),
                         );
                     }
                     await this.updateAllWithMetrics(symbol);
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;
-                    this.logger.log(`[Sync] > ${symbol.name} : Saving Last update`);
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : Saving Last update`,
+                    );
 
                     await this.symbolRepository.save(symbol);
-                    this.logger.log(`[Sync] > ${symbol.name} : Finished`);
+                    this.logger.log(
+                        `${currentTime.toISOString()} [Sync] > ${symbol.name} : Finished`,
+                    );
                 } catch (e) {
                     console.log(e);
                 } finally {

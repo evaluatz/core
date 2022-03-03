@@ -266,47 +266,42 @@ export class HistoricService {
 
                     try {
                         this.logger.log(`[Sync] > ${symbol.name} : Trying 1st method`);
-                        await this.historicRepository.save(historicData);
+                        await this.historicRepository
+                            .createQueryBuilder()
+                            .insert()
+                            .into(Historic)
+                            .values(historicData)
+                            .orUpdate({
+                                conflict_target: ['id'],
+                                overwrite: ['high', 'low', 'close', 'volume'],
+                            })
+                            .execute();
                     } catch (e) {
-                        try {
-                            this.logger.log(`[Sync] > ${symbol.name} : Trying 2nd method`);
-                            await this.historicRepository
-                                .createQueryBuilder()
-                                .insert()
-                                .into(Historic)
-                                .values(historicData)
-                                .orUpdate({
-                                    conflict_target: ['id'],
-                                    overwrite: ['high', 'low', 'close', 'volume'],
-                                })
-                                .execute();
-                        } catch (e2) {
-                            this.logger.log(`[Sync] > ${symbol.name} : Trying 3rd method`);
-                            const histToCheck = (
-                                await this.historicRepository.find({
-                                    select: ['id'],
-                                    order: { openTime: 'DESC' },
-                                    take: 1000,
-                                    where: {
-                                        symbol,
-                                    },
-                                })
-                            ).map((h) => +h.id);
+                        this.logger.log(`[Sync] > ${symbol.name} : Trying 3rd method`);
+                        const histToCheck = (
+                            await this.historicRepository.find({
+                                select: ['id'],
+                                order: { openTime: 'DESC' },
+                                take: 1000,
+                                where: {
+                                    symbol,
+                                },
+                            })
+                        ).map((h) => +h.id);
 
-                            const toExecuteInChunk = historicData.filter(
-                                (h) => !histToCheck.includes(h.id),
-                            );
-                            await Promise.all(
-                                toExecuteInChunk.map(async (h) => {
-                                    try {
-                                        this.logger.log(`[Sync] > ${symbol.name}:${h.id} : Saving`);
-                                        await this.historicRepository.save(h);
-                                    } catch (e) {
-                                        this.logger.log(`[Sync] > ${h.id} : Error to save`);
-                                    }
-                                }),
-                            );
-                        }
+                        const toExecuteInChunk = historicData.filter(
+                            (h) => !histToCheck.includes(h.id),
+                        );
+                        await Promise.all(
+                            toExecuteInChunk.map(async (h) => {
+                                try {
+                                    this.logger.log(`[Sync] > ${symbol.name}:${h.id} : Saving`);
+                                    await this.historicRepository.save(h);
+                                } catch (e) {
+                                    this.logger.log(`[Sync] > ${h.id} : Error to save`);
+                                }
+                            }),
+                        );
                     }
                     await this.updateAllWithMetrics(symbol);
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;

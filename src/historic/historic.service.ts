@@ -214,8 +214,20 @@ export class HistoricService {
     @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
         const currentTime = moment();
+        const cacheSessionID = `loading_symbols_${currentTime.toISOString()}`;
         this.logger.log(`${currentTime.toISOString()} [Sync] > : Starting`);
+        if (await this.cacheManager.get(cacheSessionID)) {
+            this.logger.log(`${currentTime.toISOString()} [Sync] > : Symbols Locked`);
+            return;
+        }
+        await this.cacheManager.set(cacheSessionID, 'true', {
+            ttl: 900,
+        });
+
         const symbols = await this.symbolRepository.find({ where: { active: true } });
+
+        await this.cacheManager.del(cacheSessionID);
+
         return await Promise.all(
             symbols.map(async (symbol) => {
                 const cacheKey = `historic_${symbol.name}`;

@@ -1,5 +1,4 @@
 import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import * as moment from 'moment';
 import { resolve } from 'path/posix';
@@ -211,7 +210,6 @@ export class HistoricService {
 
         return;
     }
-    @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
         const currentTime = moment();
         const cacheSessionID = `loading_symbols_${currentTime.toISOString()}`;

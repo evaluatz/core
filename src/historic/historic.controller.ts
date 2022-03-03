@@ -26,6 +26,11 @@ export class HistoricController {
         private cacheManager: Cache,
     ) {}
 
+    @Post()
+    create() {
+        return this.historicService.sync();
+    }
+
     @Get(':symbolName')
     async findOne(@Param('symbolName') name: string) {
         const histCached = await this.cacheManager.get(`historic_${name}`);

@@ -2,6 +2,7 @@ import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import * as moment from 'moment';
+import { resolve } from 'path/posix';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import * as techIndicators from 'technicalindicators';
 import { Repository } from 'typeorm';
@@ -283,7 +284,15 @@ export class HistoricService {
                         const toExecuteInChunk = historicData.filter(
                             (h) => !histToCheck.includes(h.id),
                         );
-                        await this.historicRepository.save(toExecuteInChunk);
+                        await Promise.all(
+                            toExecuteInChunk.map(async (h) => {
+                                try {
+                                    await this.historicRepository.save(h);
+                                } catch (e) {
+                                    this.logger.log(`[Sync] > ${h.id} : Error to save`);
+                                }
+                            }),
+                        );
                     }
                     await this.updateAllWithMetrics(symbol);
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;

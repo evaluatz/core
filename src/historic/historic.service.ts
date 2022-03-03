@@ -2,6 +2,7 @@ import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import * as moment from 'moment';
+import { resolve } from 'path/posix';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import * as techIndicators from 'technicalindicators';
 import { Repository } from 'typeorm';
@@ -212,6 +213,7 @@ export class HistoricService {
     }
     @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
+        this.logger.log(`[Sync] > : Starting`);
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
             symbols.map(async (symbol) => {
@@ -243,32 +245,39 @@ export class HistoricService {
                     }
 
                     const historicData: Historic[] = await Promise.all(
-                        klines.map(
-                            async (d) =>
-                                ({
-                                    id: +`${symbol.id}${new Date(d[0])
-                                        .getTime()
-                                        .toString()
-                                        .substring(0, 9)}`,
-                                    symbol: symbol,
-                                    openTime: new Date(d[0]),
-                                    open: +d[1],
-                                    high: +d[2],
-                                    low: +d[3],
-                                    close: +d[4],
-                                    volume: +d[5],
-                                    closeTime: new Date(d[6]),
-                                } as Historic),
+                        klines.map(async (d) =>
+                            this.historicRepository.create({
+                                id: +`${symbol.id}${new Date(d[0])
+                                    .getTime()
+                                    .toString()
+                                    .substring(0, 9)}`,
+                                symbol: symbol,
+                                openTime: new Date(d[0]),
+                                open: +d[1],
+                                high: +d[2],
+                                low: +d[3],
+                                close: +d[4],
+                                volume: +d[5],
+                                closeTime: new Date(d[6]),
+                            }),
                         ),
                     );
                     this.logger.log(`[Sync] > ${symbol.name} : Saving DB`);
 
                     try {
                         this.logger.log(`[Sync] > ${symbol.name} : Trying 1st method`);
-
-                        await this.historicRepository.save(historicData);
+                        await this.historicRepository
+                            .createQueryBuilder()
+                            .insert()
+                            .into(Historic)
+                            .values(historicData)
+                            .orUpdate({
+                                conflict_target: ['id'],
+                                overwrite: ['high', 'low', 'close', 'volume'],
+                            })
+                            .execute();
                     } catch (e) {
-                        this.logger.log(`[Sync] > ${symbol.name} : Trying 2st method`);
+                        this.logger.log(`[Sync] > ${symbol.name} : Trying 3rd method`);
                         const histToCheck = (
                             await this.historicRepository.find({
                                 select: ['id'],
@@ -283,9 +292,16 @@ export class HistoricService {
                         const toExecuteInChunk = historicData.filter(
                             (h) => !histToCheck.includes(h.id),
                         );
-
-                        //If error try to make one by one
-                        await this.historicRepository.save(toExecuteInChunk);
+                        await Promise.all(
+                            toExecuteInChunk.map(async (h) => {
+                                try {
+                                    this.logger.log(`[Sync] > ${symbol.name}:${h.id} : Saving`);
+                                    await this.historicRepository.save(h);
+                                } catch (e) {
+                                    this.logger.log(`[Sync] > ${h.id} : Error to save`);
+                                }
+                            }),
+                        );
                     }
                     await this.updateAllWithMetrics(symbol);
                     symbol.lastUpdate = historicData[historicData.length - 1].openTime;

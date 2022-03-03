@@ -1,4 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { CoinService } from 'src/coin/coin.service';
 import { Coin } from 'src/coin/entities/coin.entity';
 import { Repository } from 'typeorm';
 import { CreateSymbolDto } from './dto/create-symbol.dto';
@@ -7,6 +9,7 @@ import { Symbol } from './entities/symbol.entity';
 
 @Injectable()
 export class SymbolService {
+    private readonly logger = new Logger('SymbolService');
     constructor(
         @Inject('SYMBOL_REPOSITORY')
         private symbolRepository: Repository<Symbol>,
@@ -14,6 +17,7 @@ export class SymbolService {
         private coinRepository: Repository<Coin>,
         @Inject('BINANCE_CONNECTION')
         private binanceClient: any,
+        private readonly coinService: CoinService,
     ) {}
     create(createSymbolDto: CreateSymbolDto) {
         const newSymbol = {
@@ -41,27 +45,49 @@ export class SymbolService {
     remove(id: number) {
         return `This action removes a #${id} symbol`;
     }
+
+    @Cron(CronExpression.EVERY_5_MINUTES)
     async sync() {
+        this.logger.log(`[Sync] > : Starting`);
+
+        await this.coinService.sync();
+        this.logger.log(`[Sync] > : Loading`);
+
         const exchangeInfo = await this.binanceClient.exchangeInfo().then(({ data }) => data);
-        const symbolsData = (await Promise.all(
-            exchangeInfo.symbols.map(async (symb) => {
-                const { baseAsset, quoteAsset, symbol, status } = symb;
-                const coins = await this.coinRepository.find({
-                    where: [{ name: baseAsset as string }, { name: quoteAsset as string }],
-                });
-                //Check if already exist
-                if (await this.findOne(symbol)) return;
-                return {
-                    name: symbol,
-                    from: coins.find((c) => c.name == baseAsset),
-                    to: coins.find((c) => c.name == quoteAsset),
-                    id: null,
-                    lastUpdate: new Date('2000-01-01'),
-                    active: false,
-                    //active: status === 'TRADING',
-                } as Symbol;
-            }),
-        )) as Symbol[];
-        return this.symbolRepository.save(symbolsData);
+        this.logger.log(`[Sync] > : Formatting`);
+        const symbolsData = (
+            (await Promise.all(
+                exchangeInfo.symbols.map(async (symb) => {
+                    const { baseAsset, quoteAsset, symbol, status } = symb;
+                    //Check if already exist
+                    if (await this.findOne(symbol)) return;
+
+                    const coins = await this.coinRepository.find({
+                        where: [{ name: baseAsset as string }, { name: quoteAsset as string }],
+                    });
+                    const from = coins.find((c) => c.name == baseAsset);
+                    const to = coins.find((c) => c.name == quoteAsset);
+                    if (!from || !to) return undefined;
+
+                    return {
+                        name: symbol,
+                        from,
+                        to,
+                        id: null,
+                        lastUpdate: new Date('2000-01-01'),
+                        active: false,
+                        //active: status === 'TRADING',
+                    } as Symbol;
+                }),
+            )) as Symbol[]
+        ).filter((symbol) => symbol);
+        let symbolsRes = [];
+        if (symbolsData.length > 0) {
+            this.logger.log(`[Sync] > : Saving`);
+            symbolsRes = await this.symbolRepository.save(symbolsData);
+        }
+        this.logger.log(`[Sync] > : Finished`);
+
+        return symbolsRes;
     }
 }

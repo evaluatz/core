@@ -212,6 +212,7 @@ export class HistoricService {
     }
     @Cron(CronExpression.EVERY_5_SECONDS)
     async sync() {
+        this.logger.log(`[Sync] > : Starting`);
         const symbols = await this.symbolRepository.find({ where: { active: true } });
         return await Promise.all(
             symbols.map(async (symbol) => {

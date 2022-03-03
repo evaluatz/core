@@ -274,7 +274,7 @@ export class HistoricService {
                             await this.historicRepository.find({
                                 select: ['id'],
                                 order: { openTime: 'DESC' },
-
+                                take: 1000,
                                 where: {
                                     symbol,
                                 },
@@ -287,6 +287,7 @@ export class HistoricService {
                         await Promise.all(
                             toExecuteInChunk.map(async (h) => {
                                 try {
+                                    this.logger.log(`[Sync] > ${symbol.name}:${h.id} : Saving`);
                                     await this.historicRepository.save(h);
                                 } catch (e) {
                                     this.logger.log(`[Sync] > ${h.id} : Error to save`);

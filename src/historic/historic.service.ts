@@ -223,8 +223,11 @@ export class HistoricService {
                 try {
                     this.logger.log(`[Sync] > ${symbol.name} : Checking`);
 
-                    if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date())
+                    if ((await this.cacheManager.get(cacheLoading)) || nextUpdate > new Date()) {
+                        this.logger.log(`[Sync] > ${symbol.name} : Already updating`);
                         return;
+                    }
+
                     this.logger.log(`[Sync] > ${symbol.name} : Starting`);
 
                     const options = {

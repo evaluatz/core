@@ -266,15 +266,14 @@ export class HistoricService {
 
                     try {
                         this.logger.log(`[Sync] > ${symbol.name} : Trying 1st method`);
-
                         await this.historicRepository.save(historicData);
                     } catch (e) {
-                        this.logger.log(`[Sync] > ${symbol.name} : Trying 2st method`);
+                        this.logger.log(`[Sync] > ${symbol.name} : Trying 2nd method`);
                         const histToCheck = (
                             await this.historicRepository.find({
                                 select: ['id'],
                                 order: { openTime: 'DESC' },
-                                take: 1000,
+
                                 where: {
                                     symbol,
                                 },
@@ -284,8 +283,6 @@ export class HistoricService {
                         const toExecuteInChunk = historicData.filter(
                             (h) => !histToCheck.includes(h.id),
                         );
-
-                        //If error try to make one by one
                         await this.historicRepository.save(toExecuteInChunk);
                     }
                     await this.updateAllWithMetrics(symbol);

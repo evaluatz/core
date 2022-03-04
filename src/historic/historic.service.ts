@@ -4,11 +4,15 @@ import * as moment from 'moment';
 import { resolve } from 'path/posix';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import * as techIndicators from 'technicalindicators';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
 
+export interface IHistoricDataCached {
+    headers: any[];
+    data: any[];
+}
 @Injectable()
 export class HistoricService {
     private readonly logger = new Logger('HistoricService');
@@ -45,26 +49,57 @@ export class HistoricService {
 
     async updateAllWithMetrics(symbol: Symbol) {
         this.logger.log(`[UpdateMetrics] > ${symbol.name} : Loading DB `);
-        const historicData = await this.historicRepository.find({
-            order: { openTime: 'ASC' },
-            where: { symbol },
-        });
         const historicDataCross = {
+            id: [],
             open: [],
             high: [],
             low: [],
             close: [],
             volume: [],
         };
-        historicData.forEach((h) => {
-            historicDataCross.open.push(+h.open);
-            historicDataCross.high.push(+h.high);
-            historicDataCross.low.push(+h.low);
-            historicDataCross.close.push(+h.close);
-            historicDataCross.volume.push(+h.volume);
-        });
+        const cachedHistoric = (await this.cacheManager.get(
+            `historic_${symbol.name}`,
+        )) as IHistoricDataCached;
+
+        if (cachedHistoric) {
+            cachedHistoric.data.forEach((h) => {
+                historicDataCross.id.push(+h[0]);
+                historicDataCross.open.push(+h[1]);
+                historicDataCross.high.push(+h[2]);
+                historicDataCross.low.push(+h[3]);
+                historicDataCross.close.push(+h[4]);
+                historicDataCross.volume.push(+h[5]);
+            });
+            const lastRow = cachedHistoric.data.splice(-1);
+            const historicData = await this.historicRepository.find({
+                order: { openTime: 'ASC' },
+                where: { symbol, id: MoreThan(lastRow[0]) },
+            });
+            historicData.forEach((h) => {
+                historicDataCross.id.push(+h.openTime);
+                historicDataCross.open.push(+h.open);
+                historicDataCross.high.push(+h.high);
+                historicDataCross.low.push(+h.low);
+                historicDataCross.close.push(+h.close);
+                historicDataCross.volume.push(+h.volume);
+            });
+        } else {
+            const historicData = await this.historicRepository.find({
+                order: { openTime: 'ASC' },
+                where: { symbol },
+            });
+            historicData.forEach((h) => {
+                historicDataCross.id.push(+h.openTime);
+                historicDataCross.open.push(+h.open);
+                historicDataCross.high.push(+h.high);
+                historicDataCross.low.push(+h.low);
+                historicDataCross.close.push(+h.close);
+                historicDataCross.volume.push(+h.volume);
+            });
+        }
+
         this.logger.log(`[UpdateMetrics] > ${symbol.name} : Calculating`);
-        const length_values = historicData.length;
+        const length_values = historicDataCross.open.length;
 
         const RSI_promise = (async () => {
             const arr = techIndicators.RSI.calculate({
@@ -156,6 +191,8 @@ export class HistoricService {
                 'open',
                 'high',
                 'low',
+                'close',
+                'volume',
                 'ma50',
                 'ma100',
                 'ma200',
@@ -170,28 +207,14 @@ export class HistoricService {
         };
         this.logger.log(`[UpdateMetrics] > ${symbol.name} : Formatting`);
 
-        for (let i = 0; i < historicData.length; i++) {
-            // histAnalysisJson.push({
-            //     id: historicData[i].openTime,
-            //     open: +historicData[i].open,
-            //     high: +historicData[i].high,
-            //     low: +historicData[i].low,
-            //     ma50: MA50_values[i],
-            //     ma100: MA100_values[i],
-            //     ma200: MA200_values[i],
-            //     rsi14: RSI_values[i],
-            //     roc14: ROC_values[i],
-            //     adx14: ADX_values[i]?.adx,
-            //     mdi14: ADX_values[i]?.mdi,
-            //     pdi14: ADX_values[i]?.pdi,
-            //     adl: ADL_values[i],
-            // });
-
+        for (let i = 0; i < historicDataCross.id.length; i++) {
             histAnalysis.data.push([
-                historicData[i].openTime,
-                +historicData[i].open,
-                +historicData[i].high,
-                +historicData[i].low,
+                historicDataCross.id[i],
+                +historicDataCross.open[i],
+                +historicDataCross.high[i],
+                +historicDataCross.low[i],
+                +historicDataCross.close[i],
+                +historicDataCross.volume[i],
                 MA50_values[i],
                 MA100_values[i],
                 MA200_values[i],

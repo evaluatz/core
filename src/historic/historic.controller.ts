@@ -2,12 +2,8 @@ import { CACHE_MANAGER, Controller, Get, Inject, Param, Post, Query } from '@nes
 import { Cache } from 'cache-manager';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { Repository } from 'typeorm';
-import { HistoricService } from './historic.service';
+import { HistoricService, IHistoricDataCached } from './historic.service';
 
-interface historicDataCached {
-    headers: any[];
-    data: any[];
-}
 @Controller('historic')
 export class HistoricController {
     constructor(
@@ -25,13 +21,13 @@ export class HistoricController {
 
     @Get(':symbolName')
     async findOne(@Param('symbolName') name: string, @Query() query) {
-        const res = {} as historicDataCached;
+        const res = {} as IHistoricDataCached;
         const { offset } = query;
-        let histCached = (await this.cacheManager.get(`historic_${name}`)) as historicDataCached;
+        let histCached = (await this.cacheManager.get(`historic_${name}`)) as IHistoricDataCached;
         if (!histCached) {
             const symbol = await this.symbolRepository.findOne({ where: { name } });
             await this.historicService.updateAllWithMetrics(symbol);
-            histCached = (await this.cacheManager.get(`historic_${name}`)) as historicDataCached;
+            histCached = (await this.cacheManager.get(`historic_${name}`)) as IHistoricDataCached;
         }
 
         res.headers = histCached.headers;

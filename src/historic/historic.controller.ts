@@ -1,21 +1,13 @@
-import {
-    Controller,
-    Get,
-    Post,
-    Body,
-    Patch,
-    Param,
-    Delete,
-    Inject,
-    CACHE_MANAGER,
-} from '@nestjs/common';
-import { HistoricService } from './historic.service';
-import { CreateHistoricDto } from './dto/create-historic.dto';
-import { UpdateHistoricDto } from './dto/update-historic.dto';
-import { Repository } from 'typeorm';
-import { Symbol } from 'src/symbol/entities/symbol.entity';
+import { CACHE_MANAGER, Controller, Get, Inject, Param, Post, Query } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import { Symbol } from 'src/symbol/entities/symbol.entity';
+import { Repository } from 'typeorm';
+import { HistoricService } from './historic.service';
 
+interface historicDataCached {
+    headers: any[];
+    data: any[];
+}
 @Controller('historic')
 export class HistoricController {
     constructor(
@@ -32,12 +24,18 @@ export class HistoricController {
     }
 
     @Get(':symbolName')
-    async findOne(@Param('symbolName') name: string) {
-        const histCached = await this.cacheManager.get(`historic_${name}`);
-        if (histCached) return histCached;
+    async findOne(@Param('symbolName') name: string, @Query() query) {
+        const res = {} as historicDataCached;
+        const { offset } = query;
+        let histCached = (await this.cacheManager.get(`historic_${name}`)) as historicDataCached;
+        if (!histCached) {
+            const symbol = await this.symbolRepository.findOne({ where: { name } });
+            await this.historicService.updateAllWithMetrics(symbol);
+            histCached = (await this.cacheManager.get(`historic_${name}`)) as historicDataCached;
+        }
 
-        const symbol = await this.symbolRepository.findOne({ where: { name } });
-        await this.historicService.updateAllWithMetrics(symbol);
-        return await this.cacheManager.get(`historic_${name}`);
+        res.headers = histCached.headers;
+        res.data = offset ? histCached.data.slice(-offset) : histCached.data;
+        return res;
     }
 }

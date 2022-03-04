@@ -229,7 +229,7 @@ export class HistoricService {
         this.logger.log(`[UpdateMetrics] > ${symbol.name} : Caching`);
 
         // await this.cacheManager.set(`historic_${symbol.name}_json`, histAnalysisJson, { ttl: 900 });
-        await this.cacheManager.set(`historic_${symbol.name}`, histAnalysis, { ttl: 900 });
+        await this.cacheManager.set(`historic_${symbol.name}`, histAnalysis, { ttl: 1800 });
 
         return;
     }

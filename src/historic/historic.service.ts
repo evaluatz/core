@@ -73,7 +73,7 @@ export class HistoricService {
             const lastRow = cachedHistoric.data.splice(-1);
             const historicData = await this.historicRepository.find({
                 order: { openTime: 'ASC' },
-                where: { symbol, id: MoreThan(lastRow[0]) },
+                where: { symbol, openTime: MoreThan(lastRow[0]) },
             });
             historicData.forEach((h) => {
                 historicDataCross.id.push(+h.openTime);
@@ -230,7 +230,6 @@ export class HistoricService {
 
         // await this.cacheManager.set(`historic_${symbol.name}_json`, histAnalysisJson, { ttl: 900 });
         await this.cacheManager.set(`historic_${symbol.name}`, histAnalysis, { ttl: 1800 });
-
         return;
     }
     async sync() {

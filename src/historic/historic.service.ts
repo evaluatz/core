@@ -73,7 +73,7 @@ export class HistoricService {
             const lastRow = cachedHistoric.data.splice(-1);
             const historicData = await this.historicRepository.find({
                 order: { openTime: 'ASC' },
-                where: { symbol, openTime: MoreThan(lastRow[0]) },
+                where: { symbol, openTime: MoreThan(lastRow[0][0]) },
             });
             historicData.forEach((h) => {
                 historicDataCross.id.push(h.openTime.toISOString().replace('T', ' ').split('.')[0]);

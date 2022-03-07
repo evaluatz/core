@@ -83,10 +83,12 @@ export class PredictionStrategyService {
             },
             symbol: predictionStrategy.symbol.name,
             feature: predictionStrategy.feature.name,
-            predictions: predictionStrategy.predictions.map((p) => ({
-                openTime: p.openTime,
-                value: p.value,
-            })),
+            predictions: predictionStrategy.predictions
+                .map((p) => ({
+                    openTime: p.openTime,
+                    value: p.value,
+                }))
+                .sort((a, b) => a.openTime.getTime() - b.openTime.getTime()),
         };
     }
 }

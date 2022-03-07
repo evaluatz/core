@@ -13,6 +13,9 @@ export class ApiKey {
     @Column()
     secret: string;
 
+    @Column()
+    created_at: Date;
+
     @Index()
     @ManyToOne((type) => User)
     @JoinTable()

@@ -1,26 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { OrderSchema } from 'src/order-schema/entities/order-schema.entity';
+import { OrderSchemaService } from 'src/order-schema/order-schema.service';
+import { OrderStatus } from 'src/order-status/entities/order-status.entity';
+import { OrderStatusService } from 'src/order-status/order-status.service';
+import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { Order } from './entities/order.entity';
 
 @Injectable()
 export class OrderService {
-  create(createOrderDto: CreateOrderDto) {
-    return 'This action adds a new order';
-  }
+    constructor(
+        @Inject('ORDER_REPOSITORY')
+        private orderRepository: Repository<Order>,
+        @Inject('ORDER_SCHEMA_REPOSITORY')
+        private orderSchemaRepository: Repository<OrderSchema>,
+        @Inject('ORDER_STATUS_REPOSITORY')
+        private orderStatusRepository: Repository<OrderStatus>,
+    ) {}
+    async create(createOrderDto: CreateOrderDto) {
+        const { isBuy, value, schemaId } = createOrderDto;
+        const schema = await this.orderSchemaRepository.findOne(schemaId);
+        const status = await this.orderStatusRepository.findOne(8);
 
-  findAll() {
-    return `This action returns all order`;
-  }
+        const newOrderSchema = this.orderRepository.create({
+            createdAt: new Date(),
+            isBuy,
+            value,
+            schema,
+            status,
+        });
+        return this.orderRepository.save(newOrderSchema);
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
-  }
+    findAll() {
+        return this.orderRepository.find();
+    }
 
-  update(id: number, updateOrderDto: UpdateOrderDto) {
-    return `This action updates a #${id} order`;
-  }
+    findOne(id: number) {
+        return this.orderRepository.findOne(id);
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} order`;
-  }
+    async update(id: number, updateOrderDto: UpdateOrderDto) {
+        const { statusId, belongsToId } = updateOrderDto;
+        const status = await this.orderStatusRepository.findOne(statusId || 8);
+        return this.orderRepository.save({ id, status, belongsTo: { id: belongsToId } });
+    }
+
+    async remove(id: number) {
+        const status = await this.orderStatusRepository.findOne(-1);
+        return this.orderRepository.save({ id, status });
+    }
 }

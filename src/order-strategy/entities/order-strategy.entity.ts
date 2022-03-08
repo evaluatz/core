@@ -7,13 +7,10 @@ export class OrderStrategy {
     id: number;
 
     @Column()
+    name: string;
+
+    @Column()
     createdAt: Date;
-
-    @Column()
-    updatedAt: Date;
-
-    @Column()
-    fileName: string;
 
     @Index()
     @ManyToOne((type) => User)

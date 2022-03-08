@@ -5,30 +5,20 @@ import { UpdateOrderStrategyDto } from './dto/update-order-strategy.dto';
 
 @Controller('order-strategy')
 export class OrderStrategyController {
-  constructor(private readonly orderStrategyService: OrderStrategyService) {}
+    constructor(private readonly orderStrategyService: OrderStrategyService) {}
 
-  @Post()
-  create(@Body() createOrderStrategyDto: CreateOrderStrategyDto) {
-    return this.orderStrategyService.create(createOrderStrategyDto);
-  }
+    @Post()
+    create(@Body() createOrderStrategyDto: CreateOrderStrategyDto) {
+        return this.orderStrategyService.create(createOrderStrategyDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.orderStrategyService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.orderStrategyService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderStrategyService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderStrategyDto: UpdateOrderStrategyDto) {
-    return this.orderStrategyService.update(+id, updateOrderStrategyDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderStrategyService.remove(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.orderStrategyService.findOne(+id);
+    }
 }

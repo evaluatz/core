@@ -1,4 +1,5 @@
 import { ApiKey } from 'src/api-key/entities/api-key.entity';
+import { OrderSchema } from 'src/order-schema/entities/order-schema.entity';
 import { OrderStatus } from 'src/order-status/entities/order-status.entity';
 import {
     Column,
@@ -21,15 +22,18 @@ export class Order {
     @Column()
     isBuy: Boolean;
 
+    @Column()
+    value: number;
+
+    @Index()
+    @ManyToOne((type) => OrderSchema)
+    @JoinTable()
+    schema: OrderSchema;
+
     @Index()
     @ManyToOne((type) => OrderStatus)
     @JoinTable()
     status: OrderStatus;
-
-    @Index()
-    @ManyToOne((type) => ApiKey)
-    @JoinTable()
-    apiKey: ApiKey;
 
     @OneToMany((type) => Order, (order) => order.belongsTo)
     @JoinTable()

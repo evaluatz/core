@@ -1,26 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { User } from 'src/user/entities/user.entity';
+import { Repository } from 'typeorm';
 import { CreateOrderStrategyDto } from './dto/create-order-strategy.dto';
 import { UpdateOrderStrategyDto } from './dto/update-order-strategy.dto';
+import { OrderStrategy } from './entities/order-strategy.entity';
 
 @Injectable()
 export class OrderStrategyService {
-  create(createOrderStrategyDto: CreateOrderStrategyDto) {
-    return 'This action adds a new orderStrategy';
-  }
+    constructor(
+        @Inject('ORDER_STRATEGY_REPOSITORY')
+        private orderStrategyRepository: Repository<OrderStrategy>,
+        @Inject('USER_REPOSITORY')
+        private userRepository: Repository<User>,
+    ) {}
 
-  findAll() {
-    return `This action returns all orderStrategy`;
-  }
+    async create(createOrderStrategyDto: CreateOrderStrategyDto) {
+        const { name, userId } = createOrderStrategyDto;
+        const creator = await this.userRepository.findOne({ id: userId });
+        if (!creator) throw 'Invalid User';
 
-  findOne(id: number) {
-    return `This action returns a #${id} orderStrategy`;
-  }
+        const newOrderStrategy = this.orderStrategyRepository.create({
+            name,
+            creator,
+            createdAt: new Date(),
+        });
+        return this.orderStrategyRepository.save(newOrderStrategy);
+    }
 
-  update(id: number, updateOrderStrategyDto: UpdateOrderStrategyDto) {
-    return `This action updates a #${id} orderStrategy`;
-  }
+    findAll() {
+        return this.orderStrategyRepository.find();
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} orderStrategy`;
-  }
+    findOne(id: number) {
+        return this.orderStrategyRepository.findOne({ id });
+    }
 }

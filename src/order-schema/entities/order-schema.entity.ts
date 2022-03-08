@@ -20,7 +20,7 @@ export class OrderSchema {
     createdAt: Date;
 
     @Column()
-    updatedAt: Date;
+    active: Boolean;
 
     @Column('decimal', { precision: 100, scale: 15 })
     quantity: number;

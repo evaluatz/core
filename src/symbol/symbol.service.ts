@@ -31,7 +31,7 @@ export class SymbolService {
     }
 
     findAll() {
-        return this.symbolRepository.find();
+        return this.symbolRepository.find({ active: true });
     }
 
     findOne(name: string) {

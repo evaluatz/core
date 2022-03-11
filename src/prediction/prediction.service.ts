@@ -1,4 +1,6 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import moment from 'moment';
+import { Historic } from 'src/historic/entities/historic.entity';
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
 import { Repository } from 'typeorm';
 import { CreatePredictionDto } from './dto/create-prediction.dto';
@@ -12,27 +14,44 @@ export class PredictionService {
         private predictionRepository: Repository<Prediction>,
         @Inject('PREDICTION_STRATEGY_REPOSITORY')
         private predictionStrategyRepository: Repository<PredictionStrategy>,
+        @Inject('HISTORIC_REPOSITORY')
+        private historicRepository: Repository<Historic>,
     ) {}
 
     async create(createPredictionDto: CreatePredictionDto) {
         const { openTime, value, strategyID, secret } = createPredictionDto;
         const strategy = await this.predictionStrategyRepository.findOneOrFail({
-            id: strategyID,
-            secret,
+            where: {
+                id: strategyID,
+                secret,
+            },
+            relations: ['symbol'],
         });
-        const newObj = {
+
+        const historicId = `${strategy.symbol.id}${new Date(openTime)
+            .getTime()
+            .toString()
+            .substring(0, 9)}`;
+        const historic = await this.historicRepository.findOneOrFail({
+            where: {
+                id: historicId,
+            },
+        });
+
+        const newPrediction = this.predictionRepository.create({
             openTime,
             value,
             strategy,
-        } as Prediction;
-        await this.predictionRepository.save(newObj);
+            historic,
+        });
+        await this.predictionRepository.save(newPrediction);
         strategy.updated_at = new Date();
         await this.predictionStrategyRepository.save(strategy);
         return true;
     }
 
     findAll() {
-        return this.predictionRepository.find();
+        return this.predictionRepository.find({ relations: ['historic'] });
     }
 
     findOne(id: number) {

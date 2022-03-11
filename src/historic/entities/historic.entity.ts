@@ -1,5 +1,6 @@
+import { Prediction } from 'src/prediction/entities/prediction.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Historic {
@@ -32,4 +33,7 @@ export class Historic {
     @ManyToOne((type) => Symbol)
     @JoinTable()
     symbol: Symbol;
+
+    @OneToMany((type) => Prediction, (prediction) => prediction.strategy)
+    predictions: Prediction[];
 }

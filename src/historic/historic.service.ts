@@ -287,7 +287,7 @@ export class HistoricService {
                     );
 
                     const options = {
-                        startTime: +nextUpdate.getTime(),
+                        startTime: symbol.lastUpdate.getTime(),
                         limit: 1000,
                     };
 

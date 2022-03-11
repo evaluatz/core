@@ -1,3 +1,4 @@
+import { Historic } from 'src/historic/entities/historic.entity';
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
 import { Column, Entity, Index, JoinTable, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { JoinAttribute } from 'typeorm/query-builder/JoinAttribute';
@@ -13,6 +14,10 @@ export class Prediction {
 
     @Column('decimal', { precision: 100, scale: 15 })
     value: number;
+
+    @Index()
+    @ManyToOne((type) => Historic, (historic) => historic.predictions)
+    historic: Historic;
 
     @Index()
     @ManyToOne((type) => PredictionStrategy, (predictionStrategy) => predictionStrategy.predictions)

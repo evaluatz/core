@@ -60,6 +60,7 @@ export class PredictionStrategyService {
             description: ps.description,
             symbol: ps.symbol.name,
             feature: ps.feature.name,
+            lastUpdate: ps.updated_at,
         }));
     }
 

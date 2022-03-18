@@ -3,4 +3,6 @@ export class CreateOrderSchemaDto {
     apiKeyId: number;
     symbolName: string;
     strategyId: number;
+    lowPredictorID?: string;
+    highPredictorID?: string;
 }

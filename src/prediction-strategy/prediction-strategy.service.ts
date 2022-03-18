@@ -8,6 +8,7 @@ import { CreatePredictionStrategyDto } from './dto/create-prediction-strategy.dt
 import { UpdatePredictionStrategyDto } from './dto/update-prediction-strategy.dto';
 import { PredictionStrategy } from './entities/prediction-strategy.entity';
 import * as uuid from 'uuid';
+import { Prediction } from 'src/prediction/entities/prediction.entity';
 @Injectable()
 export class PredictionStrategyService {
     constructor(
@@ -19,6 +20,8 @@ export class PredictionStrategyService {
         private symbolRepository: Repository<Symbol>,
         @Inject('PREDICTION_FEATURE_REPOSITORY')
         private predictionFeatureRepository: Repository<PredictionFeature>,
+        @Inject('PREDICTION_REPOSITORY')
+        private predictionRepository: Repository<Prediction>,
         @Inject(CACHE_MANAGER)
         private cacheManager: Cache,
     ) {}
@@ -65,6 +68,41 @@ export class PredictionStrategyService {
     }
 
     async findOne(id: string) {
+        const predictionStrategy = await this.predictionStrategyRepository.findOne({
+            where: { id },
+            relations: ['creator', 'symbol', 'feature'],
+        });
+
+        const lastPrediction = await this.predictionRepository.findOne({
+            where: {
+                strategy: predictionStrategy,
+            },
+            order: { openTime: 'DESC' },
+        });
+
+        return {
+            id: predictionStrategy.id,
+            secret: predictionStrategy.secret,
+            created_at: predictionStrategy.created_at,
+            updated_at: predictionStrategy.updated_at,
+            name: predictionStrategy.name,
+            description: predictionStrategy.description,
+            creator: {
+                created_at: predictionStrategy.creator.created_at,
+                username: predictionStrategy.creator.username,
+                full_name: predictionStrategy.creator.full_name,
+                email: predictionStrategy.creator.email,
+            },
+            symbol: predictionStrategy.symbol.name,
+            feature: predictionStrategy.feature.name,
+            lastPrediction: {
+                openTime: lastPrediction?.openTime,
+                value: lastPrediction?.value,
+            },
+        };
+    }
+
+    async findOneFull(id: string) {
         const predictionStrategy = await this.predictionStrategyRepository.findOne({
             where: { id },
             relations: ['creator', 'symbol', 'feature', 'predictions'],

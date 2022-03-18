@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderStrategyDto } from './dto/create-order-strategy.dto';
-import { UpdateOrderStrategyDto } from './dto/update-order-strategy.dto';
 import { OrderStrategy } from './entities/order-strategy.entity';
 
 @Injectable()
@@ -24,6 +23,7 @@ export class OrderStrategyService {
             creator,
             createdAt: new Date(),
         });
+
         return this.orderStrategyRepository.save(newOrderStrategy);
     }
 

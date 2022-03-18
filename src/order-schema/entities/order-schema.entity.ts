@@ -1,5 +1,6 @@
 import { ApiKey } from 'src/api-key/entities/api-key.entity';
 import { OrderStrategy } from 'src/order-strategy/entities/order-strategy.entity';
+import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import {
     Column,
@@ -39,4 +40,14 @@ export class OrderSchema {
     @ManyToOne((type) => OrderStrategy)
     @JoinTable()
     strategy: OrderStrategy;
+
+    @Index()
+    @ManyToOne((type) => PredictionStrategy)
+    @JoinTable()
+    lowPredictor?: PredictionStrategy;
+
+    @Index()
+    @ManyToOne((type) => PredictionStrategy)
+    @JoinTable()
+    highPredictor?: PredictionStrategy;
 }

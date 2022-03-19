@@ -1,8 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OrderSchema } from 'src/order-schema/entities/order-schema.entity';
-import { OrderSchemaService } from 'src/order-schema/order-schema.service';
 import { OrderStatus } from 'src/order-status/entities/order-status.entity';
-import { OrderStatusService } from 'src/order-status/order-status.service';
 import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -38,7 +36,10 @@ export class OrderService {
     }
 
     findOne(id: number) {
-        return this.orderRepository.findOne(id);
+        return this.orderRepository.findOne({
+            where: { id },
+            relations: ['status', 'orders', 'belongsTo'],
+        });
     }
 
     async update(id: number, updateOrderDto: UpdateOrderDto) {

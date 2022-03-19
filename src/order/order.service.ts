@@ -35,11 +35,16 @@ export class OrderService {
         return this.orderRepository.find();
     }
 
-    findOne(id: number) {
-        return this.orderRepository.findOne({
+    async findOne(id: number) {
+        const order = await this.orderRepository.findOne({
             where: { id },
             relations: ['status', 'orders', 'belongsTo'],
         });
+
+        return {
+            ...order,
+            status: order.status.name,
+        };
     }
 
     async update(id: number, updateOrderDto: UpdateOrderDto) {

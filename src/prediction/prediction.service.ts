@@ -20,7 +20,7 @@ export class PredictionService {
 
     async create(createPredictionDto: CreatePredictionDto) {
         const { openTime, value, strategyID, secret } = createPredictionDto;
-        const strategy = await this.predictionStrategyRepository.findOneOrFail({
+        const strategy = await this.predictionStrategyRepository.findOne({
             where: {
                 id: strategyID,
                 secret,
@@ -28,15 +28,16 @@ export class PredictionService {
             relations: ['symbol'],
         });
 
-        const historicId = `${strategy.symbol.id}${new Date(openTime)
-            .getTime()
-            .toString()
-            .substring(0, 9)}`;
-        const historic = await this.historicRepository.findOneOrFail({
+        if (!strategy) throw 'StrategyID is wrong..';
+
+        const historic = await this.historicRepository.findOne({
             where: {
-                id: historicId,
+                symbol: strategy.symbol,
+                openTime,
             },
         });
+
+        if (!historic) throw 'openDate is wrong..';
 
         const newPrediction = this.predictionRepository.create({
             openTime,

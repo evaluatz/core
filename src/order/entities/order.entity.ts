@@ -22,7 +22,7 @@ export class Order {
     @Column()
     isBuy: Boolean;
 
-    @Column()
+    @Column('decimal', { precision: 100, scale: 15 })
     value: number;
 
     @Index()

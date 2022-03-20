@@ -76,7 +76,7 @@ export class HistoricService {
                 where: { symbol, openTime: MoreThan(lastRow[0][0]) },
             });
             historicData.forEach((h) => {
-                historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD hh:mm:ss'));
+                historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD HH:mm:ss'));
                 historicDataCross.open.push(+h.open);
                 historicDataCross.high.push(+h.high);
                 historicDataCross.low.push(+h.low);
@@ -89,7 +89,7 @@ export class HistoricService {
                 where: { symbol },
             });
             historicData.forEach((h) => {
-                historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD hh:mm:ss'));
+                historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD HH:mm:ss'));
                 historicDataCross.open.push(+h.open);
                 historicDataCross.high.push(+h.high);
                 historicDataCross.low.push(+h.low);

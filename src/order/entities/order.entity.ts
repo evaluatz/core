@@ -25,6 +25,9 @@ export class Order {
     @Column('decimal', { precision: 100, scale: 15 })
     value: number;
 
+    @Column({ unique: true, nullable: true })
+    sourceOrderId: string;
+
     @Index()
     @ManyToOne((type) => OrderSchema)
     @JoinTable()

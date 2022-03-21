@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OrderSchema } from 'src/order-schema/entities/order-schema.entity';
-import { OrderStatus } from 'src/order-status/entities/order-status.entity';
+import { enumOrderStatus, OrderStatus } from 'src/order-status/entities/order-status.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
+import { Spot } from '@binance/connector';
 
 @Injectable()
 export class OrderService {
@@ -18,7 +19,10 @@ export class OrderService {
     ) {}
     async create(createOrderDto: CreateOrderDto) {
         const { isBuy, value, schemaId } = createOrderDto;
-        const schema = await this.orderSchemaRepository.findOne(schemaId);
+        const schema = await this.orderSchemaRepository.findOne({
+            where: { id: schemaId },
+            relations: ['apiKey', 'symbol'],
+        });
         const status = await this.orderStatusRepository.findOne(8);
 
         const newOrderSchema = this.orderRepository.create({
@@ -28,7 +32,10 @@ export class OrderService {
             schema,
             status,
         });
-        return this.orderRepository.save(newOrderSchema);
+        const newOrder = await this.orderRepository.save(newOrderSchema);
+        const newStatus = await this.orderStatusRepository.findOne(0);
+
+        return this.executeOrder(newOrder, newStatus);
     }
 
     findAll() {
@@ -47,14 +54,83 @@ export class OrderService {
         };
     }
 
-    async update(id: number, updateOrderDto: UpdateOrderDto) {
-        const { statusId, belongsToId } = updateOrderDto;
-        const status = await this.orderStatusRepository.findOne(statusId || 8);
-        return this.orderRepository.save({ id, status, belongsTo: { id: belongsToId } });
+    async update() {
+        const orderSchemas = await this.orderSchemaRepository.find({
+            where: { active: true },
+            relations: ['apiKey', 'symbol'],
+        });
+        return await orderSchemas.map(async (orderSchema) => {
+            const binanceClient = new Spot(orderSchema.apiKey.key, orderSchema.apiKey.secret);
+            const ordersBinance = binanceClient.allOrders(orderSchema.symbol.name);
+
+            await Promise.all(
+                ordersBinance.map(async (o) => {
+                    const order = await this.orderRepository.findOne({
+                        where: { sourceOrderId: o.orderId },
+                        relations: ['status'],
+                    });
+                    if (order.status.name != o.status) {
+                        const status = await this.orderStatusRepository.findOne({ name: o.status });
+                        if (status) {
+                            order.status = status;
+                            await this.orderRepository.save(order);
+                        }
+                    }
+                    return o;
+                }),
+            );
+        });
     }
 
     async remove(id: number) {
-        const status = await this.orderStatusRepository.findOne(-1);
-        return this.orderRepository.save({ id, status });
+        const order = await this.orderRepository.findOneOrFail({
+            where: { id },
+            relations: ['schema', 'schema.apiKey', 'schema.symbol'],
+        });
+
+        const newStatus = await this.orderStatusRepository.findOne(-1);
+        return this.executeOrder(order, newStatus);
+    }
+
+    async executeOrder(order: Order, newStatus: OrderStatus) {
+        const { schema } = order;
+
+        const status = await this.orderStatusRepository.findOne(8);
+        order.status = status;
+        await this.orderRepository.save(order);
+
+        switch (newStatus.name) {
+            case enumOrderStatus.NEW: {
+                const { symbol } = schema;
+                const side = order.isBuy ? 'BUY' : 'SELL';
+                const type = 'LIMIT';
+                const options = {
+                    timeInForce: 'GTC',
+                    quantity: +schema.quantity,
+                    price: +order.value,
+                };
+                const binanceClient = new Spot(schema.apiKey.key, schema.apiKey.secret);
+                try {
+                    const orderBinance = await binanceClient
+                        .newOrder(symbol.name, side, type, options)
+                        .then(({ data }) => data);
+                    order.status = newStatus;
+                    order.sourceOrderId = orderBinance.orderId;
+                    return await this.orderRepository.save(order);
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+            case enumOrderStatus.CANCELLED: {
+                const { symbol } = schema;
+                const options = {
+                    orderId: order.sourceOrderId,
+                };
+                const binanceClient = new Spot(schema.apiKey.key, schema.apiKey.secret);
+                const orderBinance = await binanceClient.cancelOrder(symbol.name, options);
+                order.status = newStatus;
+                await await this.orderRepository.save(order);
+            }
+        }
     }
 }

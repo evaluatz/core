@@ -60,15 +60,17 @@ export class OrderSchemaService {
             relations: ['strategy', 'symbol', 'lowPredictor', 'highPredictor'],
         });
 
-        return {
-            createdAt: orderSchema.createdAt,
-            active: orderSchema.active,
-            quantity: orderSchema.quantity,
-            symbol: orderSchema.symbol.name,
-            strategy: orderSchema.strategy.name,
-            lowPredictor: orderSchema.lowPredictor.id,
-            highPredictor: orderSchema.highPredictor.id,
-        };
+        return !orderSchema
+            ? undefined
+            : {
+                  createdAt: orderSchema.createdAt,
+                  active: orderSchema.active,
+                  quantity: orderSchema.quantity,
+                  symbol: orderSchema.symbol.name,
+                  strategy: orderSchema.strategy.name,
+                  lowPredictor: orderSchema?.lowPredictor?.id,
+                  highPredictor: orderSchema?.highPredictor?.id,
+              };
     }
 
     update(id: number, updateOrderSchemaDto: UpdateOrderSchemaDto) {

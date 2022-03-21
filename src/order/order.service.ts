@@ -61,7 +61,9 @@ export class OrderService {
         });
         return await orderSchemas.map(async (orderSchema) => {
             const binanceClient = new Spot(orderSchema.apiKey.key, orderSchema.apiKey.secret);
-            const ordersBinance = binanceClient.allOrders(orderSchema.symbol.name);
+            const ordersBinance = await binanceClient
+                .allOrders(orderSchema.symbol.name)
+                .then(({ data }) => data);
 
             await Promise.all(
                 ordersBinance.map(async (o) => {
@@ -121,7 +123,7 @@ export class OrderService {
                     console.log(e);
                 }
             }
-            case enumOrderStatus.CANCELLED: {
+            case enumOrderStatus.CANCELED: {
                 const { symbol } = schema;
                 const options = {
                     orderId: order.sourceOrderId,

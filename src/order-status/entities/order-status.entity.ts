@@ -2,7 +2,7 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 export enum enumOrderStatus {
     PENDING = 'PENDING',
-    CANCELLED = 'CANCELLED',
+    CANCELED = 'CANCELED',
     FILLED = 'FILLED',
     NEW = 'NEW',
 }

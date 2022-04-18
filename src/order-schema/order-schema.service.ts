@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ApiKey } from 'src/api-key/entities/api-key.entity';
 import { OrderStrategy } from 'src/order-strategy/entities/order-strategy.entity';
+import { Order } from 'src/order/entities/order.entity';
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { Repository } from 'typeorm';
@@ -13,6 +14,8 @@ export class OrderSchemaService {
     constructor(
         @Inject('ORDER_SCHEMA_REPOSITORY')
         private orderSchemaRepository: Repository<OrderSchema>,
+        @Inject('ORDER_REPOSITORY')
+        private orderRepository: Repository<Order>,
         @Inject('API_KEY_REPOSITORY')
         private apiKeyRepository: Repository<ApiKey>,
         @Inject('SYMBOL_REPOSITORY')
@@ -60,6 +63,12 @@ export class OrderSchemaService {
             relations: ['strategy', 'symbol', 'lowPredictor', 'highPredictor'],
         });
 
+        const orders = await this.orderRepository.find({
+            where: { schema: orderSchema },
+            take: 1000,
+            relations: ['status'],
+        });
+
         return !orderSchema
             ? undefined
             : {
@@ -70,6 +79,7 @@ export class OrderSchemaService {
                   strategy: orderSchema.strategy.name,
                   lowPredictor: orderSchema?.lowPredictor?.id,
                   highPredictor: orderSchema?.highPredictor?.id,
+                  orders,
               };
     }
 

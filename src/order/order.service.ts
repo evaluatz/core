@@ -43,7 +43,7 @@ export class OrderService {
                             relations: ['orders'],
                         });
                         order.belongsTo = newOrder;
-                        await this.orderRepository.save(newOrder);
+                        await this.orderRepository.save(order);
                         await this.remove(o);
                         return order.orders?.length || 1;
                     }),

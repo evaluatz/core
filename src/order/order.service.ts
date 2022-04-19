@@ -35,15 +35,20 @@ export class OrderService {
         const newStatus = await this.orderStatusRepository.findOne(0);
         let qntOrders = 1;
         if (orders && orders.length > 0) {
-            await Promise.all(
-                orders.map(async (o) => {
-                    const order = await this.orderRepository.findOne(o);
-                    order.belongsTo = newOrder;
-                    await this.orderRepository.save(newOrder);
-                    return this.remove(o);
-                }),
-            );
-            qntOrders = orders.length;
+            qntOrders = (
+                await Promise.all(
+                    orders.map(async (o) => {
+                        const order = await this.orderRepository.findOne({
+                            where: { id: o },
+                            relations: ['orders'],
+                        });
+                        order.belongsTo = newOrder;
+                        await this.orderRepository.save(newOrder);
+                        await this.remove(o);
+                        return order.orders?.length || 1;
+                    }),
+                )
+            ).reduce((pv, cv) => pv + cv, 0);
         }
         return this.executeOrder(newOrder, newStatus, qntOrders);
     }

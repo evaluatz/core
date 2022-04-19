@@ -67,6 +67,7 @@ export class OrderSchemaService {
             where: { schema: orderSchema },
             take: 1000,
             relations: ['status'],
+            order: { createdAt: 'DESC' },
         });
 
         return !orderSchema

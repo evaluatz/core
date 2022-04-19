@@ -18,13 +18,12 @@ export class OrderService {
         private orderStatusRepository: Repository<OrderStatus>,
     ) {}
     async create(createOrderDto: CreateOrderDto) {
-        const { isBuy, value, schemaId } = createOrderDto;
+        const { isBuy, value, schemaId, orders } = createOrderDto;
         const schema = await this.orderSchemaRepository.findOne({
             where: { id: schemaId },
             relations: ['apiKey', 'symbol'],
         });
         const status = await this.orderStatusRepository.findOne(8);
-
         const newOrderSchema = this.orderRepository.create({
             createdAt: new Date(),
             isBuy,
@@ -34,8 +33,19 @@ export class OrderService {
         });
         const newOrder = await this.orderRepository.save(newOrderSchema);
         const newStatus = await this.orderStatusRepository.findOne(0);
-
-        return this.executeOrder(newOrder, newStatus);
+        let qntOrders = 1;
+        if (orders && orders.length > 0) {
+            await Promise.all(
+                orders.map(async (o) => {
+                    const order = await this.orderRepository.findOne(o);
+                    order.belongsTo = newOrder;
+                    await this.orderRepository.save(newOrder);
+                    return this.remove(o);
+                }),
+            );
+            qntOrders = orders.length;
+        }
+        return this.executeOrder(newOrder, newStatus, qntOrders);
     }
 
     findAll() {
@@ -50,7 +60,7 @@ export class OrderService {
 
         return {
             ...order,
-            status: order.status.name,
+            status: order?.status?.name,
         };
     }
 
@@ -71,7 +81,7 @@ export class OrderService {
                         where: { sourceOrderId: o.orderId },
                         relations: ['status'],
                     });
-                    if (order.status.name != o.status) {
+                    if (order && order.status && order.status.name != o.status) {
                         const status = await this.orderStatusRepository.findOne({ name: o.status });
                         if (status) {
                             order.status = status;
@@ -94,7 +104,7 @@ export class OrderService {
         return this.executeOrder(order, newStatus);
     }
 
-    async executeOrder(order: Order, newStatus: OrderStatus) {
+    async executeOrder(order: Order, newStatus: OrderStatus, schemaQnt: number = 1) {
         const { schema } = order;
 
         const status = await this.orderStatusRepository.findOne(8);
@@ -108,7 +118,7 @@ export class OrderService {
                 const type = 'LIMIT';
                 const options = {
                     timeInForce: 'GTC',
-                    quantity: +schema.quantity,
+                    quantity: (+schema.quantity * schemaQnt).toFixed(8),
                     price: +order.value,
                 };
                 const binanceClient = new Spot(schema.apiKey.key, schema.apiKey.secret);

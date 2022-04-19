@@ -35,17 +35,36 @@ export class OrderService {
         const newStatus = await this.orderStatusRepository.findOne(0);
         let qntOrders = 1;
         if (orders && orders.length > 0) {
+            const fnFindChilds = async (orderId) => {
+                const order = await this.orderRepository.findOne({
+                    where: { id: orderId },
+                    relations: ['orders'],
+                });
+                return order.orders?.length == 0
+                    ? order
+                    : (
+                          await Promise.all(order.orders.map((o) => fnFindChilds(o.id)).flat())
+                      ).flat();
+            };
+
+            const lastChildOrders = (
+                await Promise.all(orders.map((o) => fnFindChilds(o)).flat())
+            ).flat();
             qntOrders = (
                 await Promise.all(
-                    orders.map(async (o) => {
+                    lastChildOrders.map(async (o) => {
                         const order = await this.orderRepository.findOne({
-                            where: { id: o },
-                            relations: ['orders'],
+                            where: { id: o.id },
+                            relations: ['orders', 'status'],
                         });
-                        order.belongsTo = newOrder;
-                        await this.orderRepository.save(order);
-                        await this.remove(o);
-                        return order.orders?.length || 1;
+                        if (!order.belongsTo) {
+                            order.belongsTo = newOrder;
+                            await this.orderRepository.save(order);
+                        }
+                        if (order.status.id == 0) {
+                            await this.remove(o.id);
+                        }
+                        return 1;
                     }),
                 )
             ).reduce((pv, cv) => pv + cv, 0);

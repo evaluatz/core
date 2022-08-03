@@ -3,7 +3,7 @@ import { Cache } from 'cache-manager';
 import { PredictionFeature } from 'src/prediction-feature/entities/prediction-feature.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Equal, Repository } from 'typeorm';
 import { CreatePredictionStrategyDto } from './dto/create-prediction-strategy.dto';
 import { UpdatePredictionStrategyDto } from './dto/update-prediction-strategy.dto';
 import { PredictionStrategy } from './entities/prediction-strategy.entity';
@@ -29,13 +29,13 @@ export class PredictionStrategyService {
     async create(createPredictionStrategyDto: CreatePredictionStrategyDto) {
         const { name, description, creatorID, symbolID, featureID } = createPredictionStrategyDto;
 
-        const creator = await this.userRepository.findOne({ id: creatorID });
+        const creator = await this.userRepository.findOneBy({ id: creatorID });
         if (!creator) throw 'Invalid User';
 
-        const symbol = await this.symbolRepository.findOne({ id: symbolID });
+        const symbol = await this.symbolRepository.findOneBy({ id: symbolID });
         if (!symbol) throw 'Invalid Symbol';
 
-        const feature = await this.predictionFeatureRepository.findOne({ id: featureID });
+        const feature = await this.predictionFeatureRepository.findOneBy({ id: featureID });
         if (!feature) throw 'Invalid Feature';
 
         const newObj = {
@@ -75,7 +75,7 @@ export class PredictionStrategyService {
 
         const lastPrediction = await this.predictionRepository.findOne({
             where: {
-                strategy: predictionStrategy,
+                strategy: Equal(predictionStrategy),
             },
             order: { openTime: 'DESC' },
         });

@@ -14,6 +14,6 @@ export class OrderStatusService {
     }
 
     findOne(id: number) {
-        return this.orderStatusRepository.findOne({ id });
+        return this.orderStatusRepository.findOneBy({ id });
     }
 }

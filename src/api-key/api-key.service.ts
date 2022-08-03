@@ -18,10 +18,10 @@ export class ApiKeyService {
     ) {}
     async create(createApiKeyDto: CreateApiKeyDto) {
         const { key, secret, userId, sourceId } = createApiKeyDto;
-        const user = await this.userRepository.findOne({ id: userId });
+        const user = await this.userRepository.findOneBy({ id: sourceId });
         if (!user) throw 'Invalid User';
 
-        const source = await this.sourceRepository.findOne({ id: sourceId });
+        const source = await this.sourceRepository.findOneBy({ id: sourceId });
         if (!user) throw 'Invalid Source';
 
         const newApiKey = await this.apiKeyRepository.create({
@@ -39,12 +39,16 @@ export class ApiKeyService {
     }
 
     findOne(id: number) {
-        return this.apiKeyRepository.findOne({ id });
+        return this.apiKeyRepository.findOneBy({ id });
     }
 
     async update(id: number, updateApiKeyDto: UpdateApiKeyDto) {
         const { key, secret } = updateApiKeyDto;
-        const newApiKey = { ...(await this.apiKeyRepository.findOne({ id })), key, secret };
+        const newApiKey = {
+            ...(await this.apiKeyRepository.findOneBy({ id })),
+            key,
+            secret,
+        };
 
         return this.apiKeyRepository.save(newApiKey);
     }

@@ -31,11 +31,11 @@ export class SymbolService {
     }
 
     findAll() {
-        return this.symbolRepository.find({ active: true });
+        return this.symbolRepository.find({ where: { active: true } });
     }
 
     findOne(name: string) {
-        return this.symbolRepository.findOne({ name });
+        return this.symbolRepository.findOneBy({ name });
     }
 
     update(id: number, updateSymbolDto: UpdateSymbolDto) {

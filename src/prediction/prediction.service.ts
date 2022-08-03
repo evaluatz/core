@@ -2,7 +2,7 @@ import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import moment from 'moment';
 import { Historic } from 'src/historic/entities/historic.entity';
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
-import { Repository } from 'typeorm';
+import { Equal, Repository } from 'typeorm';
 import { CreatePredictionDto } from './dto/create-prediction.dto';
 import { UpdatePredictionDto } from './dto/update-prediction.dto';
 import { Prediction } from './entities/prediction.entity';
@@ -22,7 +22,7 @@ export class PredictionService {
         const { openTime, value, strategyID, secret } = createPredictionDto;
         const strategy = await this.predictionStrategyRepository.findOne({
             where: {
-                id: strategyID,
+                id: Equal(strategyID),
                 secret,
             },
             relations: ['symbol'],
@@ -32,7 +32,7 @@ export class PredictionService {
 
         const historic = await this.historicRepository.findOne({
             where: {
-                symbol: strategy.symbol,
+                symbol: Equal(strategy.symbol),
                 openTime,
             },
         });

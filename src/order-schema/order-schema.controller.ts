@@ -5,30 +5,30 @@ import { UpdateOrderSchemaDto } from './dto/update-order-schema.dto';
 
 @Controller('order-schema')
 export class OrderSchemaController {
-  constructor(private readonly orderSchemaService: OrderSchemaService) {}
+    constructor(private readonly orderSchemaService: OrderSchemaService) {}
 
-  @Post()
-  create(@Body() createOrderSchemaDto: CreateOrderSchemaDto) {
-    return this.orderSchemaService.create(createOrderSchemaDto);
-  }
+    @Post()
+    create(@Body() createOrderSchemaDto: CreateOrderSchemaDto) {
+        return this.orderSchemaService.create(createOrderSchemaDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.orderSchemaService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.orderSchemaService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderSchemaService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.orderSchemaService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderSchemaDto: UpdateOrderSchemaDto) {
-    return this.orderSchemaService.update(+id, updateOrderSchemaDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateOrderSchemaDto: UpdateOrderSchemaDto) {
+        return this.orderSchemaService.update(+id, updateOrderSchemaDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderSchemaService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.orderSchemaService.remove(+id);
+    }
 }

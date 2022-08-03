@@ -28,7 +28,7 @@ export class CoinService {
     }
 
     findOne(name: string) {
-        return this.coinRepository.findOne({ name });
+        return this.coinRepository.findOneBy({ name });
     }
 
     update(id: number, updateCoinDto: UpdateCoinDto) {
@@ -43,7 +43,7 @@ export class CoinService {
         try {
             this.logger.log(`[Sync] > : Loading`);
             const coinInfo = await this.binanceClient.coinInfo().then(({ data }) => data);
-            console.log(coinInfo)
+            console.log(coinInfo);
             this.logger.log(`[Sync] > : Formatting`);
             const coins = (
                 (await Promise.all(

@@ -15,7 +15,7 @@ export class OrderStrategyService {
 
     async create(createOrderStrategyDto: CreateOrderStrategyDto) {
         const { name, userId } = createOrderStrategyDto;
-        const creator = await this.userRepository.findOne({ id: userId });
+        const creator = await this.userRepository.findOneBy({ id: userId });
         if (!creator) throw 'Invalid User';
 
         const newOrderStrategy = this.orderStrategyRepository.create({
@@ -32,6 +32,6 @@ export class OrderStrategyService {
     }
 
     findOne(id: number) {
-        return this.orderStrategyRepository.findOne({ id });
+        return this.orderStrategyRepository.findOneBy({ id });
     }
 }

@@ -4,7 +4,7 @@ import { OrderStrategy } from 'src/order-strategy/entities/order-strategy.entity
 import { Order } from 'src/order/entities/order.entity';
 import { PredictionStrategy } from 'src/prediction-strategy/entities/prediction-strategy.entity';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
-import { Repository } from 'typeorm';
+import { Equal, Repository } from 'typeorm';
 import { CreateOrderSchemaDto } from './dto/create-order-schema.dto';
 import { UpdateOrderSchemaDto } from './dto/update-order-schema.dto';
 import { OrderSchema } from './entities/order-schema.entity';
@@ -29,9 +29,9 @@ export class OrderSchemaService {
     async create(createOrderSchemaDto: CreateOrderSchemaDto) {
         const { quantity, apiKeyId, symbolName, strategyId, lowPredictorID, highPredictorID } =
             createOrderSchemaDto;
-        const apiKey = await this.apiKeyRepository.findOneOrFail(apiKeyId);
-        const symbol = await this.symbolRepository.findOneOrFail({ name: symbolName });
-        const strategy = await this.orderStrategyRepository.findOneOrFail(strategyId);
+        const apiKey = await this.apiKeyRepository.findOneByOrFail({ id: apiKeyId });
+        const symbol = await this.symbolRepository.findOneByOrFail({ name: symbolName });
+        const strategy = await this.orderStrategyRepository.findOneByOrFail({ id: strategyId });
 
         const newOrderSchema = this.orderSchemaRepository.create({
             createdAt: new Date(),
@@ -43,10 +43,10 @@ export class OrderSchemaService {
         });
 
         if (lowPredictorID && highPredictorID) {
-            newOrderSchema.lowPredictor = await this.predictionStrategyRepository.findOneOrFail({
+            newOrderSchema.lowPredictor = await this.predictionStrategyRepository.findOneByOrFail({
                 id: lowPredictorID,
             });
-            newOrderSchema.highPredictor = await this.predictionStrategyRepository.findOneOrFail({
+            newOrderSchema.highPredictor = await this.predictionStrategyRepository.findOneByOrFail({
                 id: highPredictorID,
             });
         }
@@ -64,7 +64,7 @@ export class OrderSchemaService {
         });
 
         const orders = await this.orderRepository.find({
-            where: { schema: orderSchema },
+            where: { schema: Equal(orderSchema) },
             take: 1000,
             relations: ['status'],
             order: { createdAt: 'DESC' },

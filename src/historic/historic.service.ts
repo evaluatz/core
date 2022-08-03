@@ -4,7 +4,7 @@ import * as moment from 'moment';
 import { resolve } from 'path/posix';
 import { Symbol } from 'src/symbol/entities/symbol.entity';
 import * as techIndicators from 'technicalindicators';
-import { MoreThan, Repository } from 'typeorm';
+import { Equal, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateHistoricDto } from './dto/create-historic.dto';
 import { UpdateHistoricDto } from './dto/update-historic.dto';
 import { Historic } from './entities/historic.entity';
@@ -62,6 +62,7 @@ export class HistoricService {
         )) as IHistoricDataCached;
 
         if (cachedHistoric) {
+            const lastRow = cachedHistoric.data.splice(-1);
             cachedHistoric.data.forEach((h) => {
                 historicDataCross.id.push(h[0]);
                 historicDataCross.open.push(+h[1]);
@@ -70,10 +71,9 @@ export class HistoricService {
                 historicDataCross.close.push(+h[4]);
                 historicDataCross.volume.push(+h[5]);
             });
-            const lastRow = cachedHistoric.data.splice(-1);
             const historicData = await this.historicRepository.find({
                 order: { openTime: 'ASC' },
-                where: { symbol, openTime: MoreThan(lastRow[0][0]) },
+                where: { symbol: Equal(symbol), openTime: MoreThanOrEqual(lastRow[0][0]) },
             });
             historicData.forEach((h) => {
                 historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD HH:mm:ss'));
@@ -86,7 +86,7 @@ export class HistoricService {
         } else {
             const historicData = await this.historicRepository.find({
                 order: { openTime: 'ASC' },
-                where: { symbol },
+                where: { symbol: Equal(symbol) },
             });
             historicData.forEach((h) => {
                 historicDataCross.id.push(moment(h.openTime).format('YYYY-MM-DD HH:mm:ss'));
@@ -359,7 +359,7 @@ export class HistoricService {
                                 order: { openTime: 'DESC' },
                                 take: 1000,
                                 where: {
-                                    symbol,
+                                    symbol: Equal(symbol),
                                 },
                             })
                         ).map((h) => +h.id);

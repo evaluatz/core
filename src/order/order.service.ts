@@ -23,7 +23,7 @@ export class OrderService {
             where: { id: schemaId },
             relations: ['apiKey', 'symbol'],
         });
-        const status = await this.orderStatusRepository.findOne(8);
+        const status = await this.orderStatusRepository.findOneBy({ id: 8 });
         const newOrderSchema = this.orderRepository.create({
             createdAt: new Date(),
             isBuy,
@@ -32,7 +32,7 @@ export class OrderService {
             status,
         });
         const newOrder = await this.orderRepository.save(newOrderSchema);
-        const newStatus = await this.orderStatusRepository.findOne(0);
+        const newStatus = await this.orderStatusRepository.findOneBy({ id: 0 });
         let qntOrders = 1;
         if (orders && orders.length > 0) {
             const fnFindChilds = async (orderId) => {
@@ -106,7 +106,9 @@ export class OrderService {
                         relations: ['status'],
                     });
                     if (order && order.status && order.status.name != o.status) {
-                        const status = await this.orderStatusRepository.findOne({ name: o.status });
+                        const status = await this.orderStatusRepository.findOneBy({
+                            name: o.status,
+                        });
                         if (status) {
                             order.status = status;
                             await this.orderRepository.save(order);
@@ -124,14 +126,14 @@ export class OrderService {
             relations: ['schema', 'schema.apiKey', 'schema.symbol'],
         });
 
-        const newStatus = await this.orderStatusRepository.findOne(-1);
+        const newStatus = await this.orderStatusRepository.findOneBy({ id: -1 });
         return this.executeOrder(order, newStatus);
     }
 
     async executeOrder(order: Order, newStatus: OrderStatus, schemaQnt: number = 1) {
         const { schema } = order;
 
-        const status = await this.orderStatusRepository.findOne(8);
+        const status = await this.orderStatusRepository.findOneBy({ id: 8 });
         order.status = status;
         await this.orderRepository.save(order);
 

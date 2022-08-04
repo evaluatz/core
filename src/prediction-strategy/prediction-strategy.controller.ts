@@ -17,8 +17,18 @@ export class PredictionStrategyController {
         return this.predictionStrategyService.findAll();
     }
 
+    @Get('symbol/:symbolName')
+    findBySymbol(@Param('symbolName') id: string) {
+        return this.predictionStrategyService.findBySymbol(id);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.predictionStrategyService.findOne(id);
+    }
+
+    @Get(':id/historic')
+    findHistoric(@Param('id') id: string) {
+        return this.predictionStrategyService.findHistoric(id);
     }
 }

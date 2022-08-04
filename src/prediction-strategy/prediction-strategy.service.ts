@@ -54,7 +54,7 @@ export class PredictionStrategyService {
 
     async findAll() {
         const predictionStrategies = await this.predictionStrategyRepository.find({
-            relations: ['symbol', 'feature'],
+            relations: ['creator', 'symbol', 'feature'],
         });
         return predictionStrategies.map((ps) => ({
             id: ps.id,
@@ -65,6 +65,40 @@ export class PredictionStrategyService {
             feature: ps.feature.name,
             lastUpdate: ps.updated_at,
         }));
+    }
+
+    async findBySymbol(symbolName: string) {
+        const symbol = await this.symbolRepository.findOneOrFail({ name: symbolName });
+
+        const predictionStrategies = await this.predictionStrategyRepository.find({
+            where: { symbol: symbol },
+            relations: ['creator', 'symbol', 'feature'],
+        });
+        return predictionStrategies.map((ps) => ({
+            id: ps.id,
+            secret: ps.secret,
+            name: ps.name,
+            description: ps.description,
+            symbol: ps.symbol.name,
+            feature: ps.feature.name,
+            lastUpdate: ps.updated_at,
+        }));
+    }
+
+    async findHistoric(id: string) {
+        const predictionStrategy = await this.predictionStrategyRepository.findOne({
+            where: { id },
+            relations: ['creator', 'symbol', 'feature'],
+        });
+
+        const predictions = await this.predictionRepository.find({
+            where: {
+                strategy: predictionStrategy,
+            },
+            order: { openTime: 'DESC' },
+        });
+
+        return predictions;
     }
 
     async findOne(id: string) {

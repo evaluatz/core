@@ -85,7 +85,7 @@ export class PredictionStrategyService {
         }));
     }
 
-    async findHistoric(id: string) {
+    async findHistoric(id: string, offset: number = 1000) {
         const predictionStrategy = await this.predictionStrategyRepository.findOne({
             where: { id },
             relations: ['creator', 'symbol', 'feature'],
@@ -95,10 +95,16 @@ export class PredictionStrategyService {
             where: {
                 strategy: predictionStrategy,
             },
+            relations: ['historic'],
             order: { openTime: 'DESC' },
+            take: offset,
         });
 
-        return predictions;
+        return predictions.map((pred) => ({
+            openTime: pred.openTime,
+            value: pred.value,
+            target: pred.historic[predictionStrategy.feature.name],
+        }));
     }
 
     async findOne(id: string) {

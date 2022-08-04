@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PredictionStrategyService } from './prediction-strategy.service';
 import { CreatePredictionStrategyDto } from './dto/create-prediction-strategy.dto';
 import { UpdatePredictionStrategyDto } from './dto/update-prediction-strategy.dto';
@@ -28,7 +28,8 @@ export class PredictionStrategyController {
     }
 
     @Get(':id/historic')
-    findHistoric(@Param('id') id: string) {
-        return this.predictionStrategyService.findHistoric(id);
+    findHistoric(@Param('id') id: string, @Query() query) {
+        const { offset } = query;
+        return this.predictionStrategyService.findHistoric(id, offset);
     }
 }
